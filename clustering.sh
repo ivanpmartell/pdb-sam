@@ -1,0 +1,1 @@
+cd-hit -i pdb_filtered.fa -o pdb_clustered.fa -c 0.99

@@ -1,0 +1,7 @@
+alignments/
+clusters/
+cd-hit/
+EMBOSS-6.6.0/
+ncbi-blast-2.8.1+
+*.fa
+*.clstr
