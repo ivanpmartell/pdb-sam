@@ -12,4 +12,5 @@ RCSB PDB simple amino-acid mutation clusters
 
 ## Python libraries
 ```logomaker```
-```pymol```
+```pandas```
+```numpy```
