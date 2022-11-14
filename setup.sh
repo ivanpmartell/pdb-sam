@@ -30,6 +30,9 @@ wget wget ftp://emboss.open-bio.org/pub/EMBOSS/emboss-latest.tar.gz && \
     make install && \
     cd ..
 
+#Python should be installed after installing julia packages
+#Python utilizes logomaker
+
 echo "Add the following folders to PATH: cd-hit/  cd-hit/cd-hit-auxtools  cd-hit/psi-cd-hit  ncbi-blast-2.8.1+/bin julia-1.8.2/bin"
 echo "Replace pdb-sam with full path to repository folder: PATH=pdb-sam/julia-1.8.2/bin:pdb-sam/cd-hit:pdb-sam/cd-hit/cd-hit-auxtools:pdb-sam/cd-hit/psi-cd-hit:pdb-sam/ncbi-blast-2.8.1+/bin:/usr/local/emboss/bin:${PATH}"
 echo "Add julia libraries in README.md"

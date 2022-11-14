@@ -18,7 +18,7 @@ end
 
 cluster_dict = Dict()
 cluster_regex = r"^(\d+)\t(\d+)aa, >(\w+)\.\.\. (at \d+\.\d+%|\*)$"
-open("pdb_clustered.fa.clstr") do file
+open("pdb_clustered_lenlimit.fa.clstr") do file
     current_cluster = ""
     for line in eachline(file)
         if startswith(line,">")
@@ -59,7 +59,7 @@ end
 
 #Write pdb_clean_clustered.fa.clstr
 protein_cluster = Dict()
-open("pdb_clean_clustered.fa.clstr", "w") do file
+open("pdb_clean_clustered_lenlimit.fa.clstr", "w") do file
     for ckey in keys(cluster_dict)
         current_cluster = cluster_dict[ckey]
         write(file, ">$(ckey)\n")
@@ -72,7 +72,7 @@ end
 
 #Write separate .fa files for each cluster
 try
-    mkdir("clusters")
+    mkdir("clusters_lenlimit")
 catch e
     println(e)
 end
@@ -80,7 +80,7 @@ FASTA.Reader(open("pdb_filtered.fa")) do reader
     for record in reader
         try
             current_cluster = protein_cluster[identifier(record)]
-            FASTA.Writer(open("clusters/$(current_cluster).fa", "a")) do writer
+            FASTA.Writer(open("clusters_lenlimit/$(current_cluster).fa", "a")) do writer
                 write(writer, record)
             end
         catch e

@@ -1,5 +1,5 @@
 mkdir alignments
 cd clusters
 for file in *; do
-    clustalo --outfmt clustal --force -i "$file" -o "../alignments/$file.clu"
+    clustalo --outfmt fasta --force -i "$file" -o "../alignments/$file.ala"
 done
