@@ -1,8 +1,9 @@
-alignments/
-clusters/
+.vscode/
 cd-hit/
 EMBOSS-6.6.0/
 julia-1.8.2/
-ncbi-blast-2.8.1+
+ncbi-blast-2.8.1+/
 *.fa
+*.ala
 *.clstr
+*.png

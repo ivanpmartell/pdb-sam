@@ -1,4 +1,23 @@
+using ArgParse
 using FASTX
+
+function parse_commandline()
+    s = ArgParseSettings()
+    @add_arg_table! s begin
+        "--input", "-i"
+            help = "Input file (clstr format)"
+            required = true
+        "--output", "-o"
+            help = "Output file (clstr format)"
+            required = true
+        "--directory", "-d"
+            help = "Output directory. Cluster files (fasta format) will be saved here"
+            required = true
+        "--fasta", "-f"
+            help = "Input file (fasta format). If not specified, determined through .clstr input"
+    end
+    return parse_args(s)
+end
 
 #Read clstr file
 struct ClusterProtein
@@ -16,9 +35,14 @@ function printClusterProtein(self::ClusterProtein, id::Int64)
     return "$(id)\t$(self.length)aa, >$(self.pdb_id)... $(amt_ident)\n"
 end
 
+parsed_args = parse_commandline()
+if isnothing(parsed_args["fasta"])
+    parsed_args["fasta"] = chop(parsed_args["input"], tail=6)
+end
+
 cluster_dict = Dict()
 cluster_regex = r"^(\d+)\t(\d+)aa, >(\w+)\.\.\. (at \d+\.\d+%|\*)$"
-open("pdb_clustered_lenlimit.fa.clstr") do file
+open(parsed_args["input"]) do file
     current_cluster = ""
     for line in eachline(file)
         if startswith(line,">")
@@ -59,7 +83,7 @@ end
 
 #Write pdb_clean_clustered.fa.clstr
 protein_cluster = Dict()
-open("pdb_clean_clustered_lenlimit.fa.clstr", "w") do file
+open(parsed_args["output"], "w") do file
     for ckey in keys(cluster_dict)
         current_cluster = cluster_dict[ckey]
         write(file, ">$(ckey)\n")
@@ -71,16 +95,12 @@ open("pdb_clean_clustered_lenlimit.fa.clstr", "w") do file
 end
 
 #Write separate .fa files for each cluster
-try
-    mkdir("clusters_lenlimit")
-catch e
-    println(e)
-end
-FASTA.Reader(open("pdb_filtered.fa")) do reader
+mkpath(parsed_args["directory"])
+FASTA.Reader(open(parsed_args["fasta"])) do reader
     for record in reader
         try
             current_cluster = protein_cluster[identifier(record)]
-            FASTA.Writer(open("clusters_lenlimit/$(current_cluster).fa", "a")) do writer
+            FASTA.Writer(open("$(joinpath(parsed_args["directory"], current_cluster)).fa", "a")) do writer
                 write(writer, record)
             end
         catch e
