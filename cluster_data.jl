@@ -15,3 +15,5 @@ end
 
 parsed_args = parse_commandline()
 run(`cd-hit -i $(parsed_args["input"]) -o $(parsed_args["output"]) -c 0.99 -s 0.9`)
+
+#TODO: Add mmseqs2 option

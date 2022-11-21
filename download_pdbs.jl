@@ -15,6 +15,6 @@ end
 
 #TODO: pdbtool to only leave the chain of interest
 
-#TODO: make sure the variants are in the pdb
+#TODO: make sure the variants are in pdb files
 
 #TODO: automate pymol align, transparency of non-variant residues and highlight variants

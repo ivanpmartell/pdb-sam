@@ -27,20 +27,25 @@ function get_sequences_length(input_file)
     end
 end
 
-function filtered_aa_alphabet()
-    filtered_abet = Dict{AminoAcid, Int64}()
+function is_standard(aa::AminoAcid)
+    return AA_A ≤ aa ≤ AA_V
+end
+
+function aa_alphabet_str()
     alphabet_string = ""
     i = 1
     for aa in alphabet(AminoAcid)
-        if aa === AA_O || aa === AA_U || aa === AA_B || aa === AA_J || aa === AA_Z || aa === AA_X || aa === AA_Term || aa === AA_Gap
+        if !is_standard(aa)
             continue
         end
-        filtered_abet[aa] = i
         aa_str = string(aa)
         alphabet_string *= aa_str
-        i += 1
     end
-    return (filtered_abet, alphabet_string)
+    return alphabet_string
+end
+
+function aa_index(aa::AminoAcid, aa_len, i)
+    return reinterpret(UInt8, aa) + aa_len*(i-1) + 1
 end
 
 function seqlogo_matrix(p::AbstractMatrix)
@@ -52,7 +57,7 @@ end
 py"""
 def save_seqlogo(df, file_name, window_size):
     import logomaker
-    import matplotlib
+    import matplotlib.pyplot as plt
     from math import ceil
     for i in range(ceil(len(df)/window_size)):
         current_idx = i * window_size
@@ -66,7 +71,7 @@ def save_seqlogo(df, file_name, window_size):
         msaSeqLogo.ax.set_ylim(0, 1)
         msaSeqLogo.ax.set_yticks([0, 0.25, .5, 0.75, 1])
         msaSeqLogo.fig.savefig(f"{file_name}_{current_idx}-{current_idx+window_size}.png")
-    matplotlib.pyplot.close()
+        plt.close(msaSeqLogo.fig)
 """
 pysave_seqlogo = py"save_seqlogo"
 
@@ -74,18 +79,18 @@ parsed_args = parse_commandline()
 if isnothing(parsed_args["output"])
     parsed_args["output"] = parsed_args["input"]
 end
+aa_str = aa_alphabet_str()
+alphabet_len = length(aa_str)
 for f in ProgressBar(glob("*.ala", parsed_args["input"]))
-    aa_alphabet, aa_str = filtered_aa_alphabet()
     seqs_len = get_sequences_length(f)
-    freqs = zeros(Int64, (length(aa_alphabet), seqs_len))
+    freqs = zeros(Int, (alphabet_len, seqs_len))
     FASTA.Reader(open(f)) do reader
         for record in reader
             seq = sequence(LongAA, record)
             for i in eachindex(seq)
-                try
-                    freqs[aa_alphabet[seq[i]], i] += 1
-                catch e
-                    continue
+                aa = seq[i]
+                if is_standard(aa)
+                    freqs[aa_index(aa, alphabet_len, i)] += 1
                 end
             end
         end
@@ -96,4 +101,9 @@ for f in ProgressBar(glob("*.ala", parsed_args["input"]))
     cluster_path = joinpath(parsed_args["output"], cluster)
     mkpath(cluster_path)
     pysave_seqlogo(seqlogo_df, "$(cluster_path)/seqlogo", 100)
+    try
+        rm(cluster_path)
+    catch e
+        continue
+    end
 end
