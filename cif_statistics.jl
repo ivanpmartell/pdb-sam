@@ -1,0 +1,1 @@
+#TODO: Obtain variants statistics (locations, vicinity, type of residue, charge, thermodynamics, thermal)

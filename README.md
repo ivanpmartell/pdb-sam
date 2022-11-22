@@ -3,6 +3,7 @@ RCSB PDB simple amino-acid mutation clusters
 
 ## Julia libraries
 ```FASTX```
+```BioStructures```
 ```BioSequences```
 ```LogExpFunctions```
 ```Pandas```

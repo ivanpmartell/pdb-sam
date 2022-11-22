@@ -7,3 +7,5 @@ ncbi-blast-2.8.1+/
 *.ala
 *.clstr
 *.png
+*.pdb
+*.cif

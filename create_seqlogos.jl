@@ -82,6 +82,13 @@ end
 aa_str = aa_alphabet_str()
 alphabet_len = length(aa_str)
 for f in ProgressBar(glob("*.ala", parsed_args["input"]))
+    cluster = chop(last(split(f, "/")),tail=7)
+    cluster_path = joinpath(parsed_args["output"], cluster)
+    try
+        mkdir(cluster_path)
+    catch e
+        continue
+    end
     seqs_len = get_sequences_length(f)
     freqs = zeros(Int, (alphabet_len, seqs_len))
     FASTA.Reader(open(f)) do reader
@@ -97,9 +104,7 @@ for f in ProgressBar(glob("*.ala", parsed_args["input"]))
     end
     seqlogo_mat = seqlogo_matrix(freqs)
     seqlogo_df = DataFrame(seqlogo_mat; columns=split(aa_str,""))
-    cluster = chop(last(split(f, "/")),tail=7)
-    cluster_path = joinpath(parsed_args["output"], cluster)
-    mkpath(cluster_path)
+    seqlogo_df = fillna(seqlogo_df, 0)
     pysave_seqlogo(seqlogo_df, "$(cluster_path)/seqlogo", 100)
     try
         rm(cluster_path)
