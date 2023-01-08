@@ -6,14 +6,7 @@ Current url as of 2022-10-04: https://ftp.wwpdb.org/pub/pdb/derived_data/pdb_seq
 
 # Remove malformed sequences
 
->7ooo_B mol:na length:11  DNA (5'-D(*CP*TP*(RWQ)P*TP*CP*TP*TP*TP*G)-3')
-CT05ATCTTTG
->7ooo_E mol:na length:11  DNA (5'-D(*CP*TP*(RWQ)P*TP*CP*TP*TP*TP*G)-3')
-CT05ATCTTTG
->7oos_B mol:na length:11  DNA (5'-D(*CP*TP*(RWT)P*TP*CP*TP*TP*TP*G)-3')
-CT05KTCTTTG
->7ozz_B mol:na length:11  DNA (5'-D(*CP*TP*(RWR)P*TP*CP*TP*TP*TP*G)-3')
-CT05HTCTTTG
+Some sequences are malformed, e.g. CT05ATCTTTG, which have to be removed
 
 # Remove redundancy
 
@@ -35,4 +28,4 @@ Obtain protein IDs for each cluster
 
 Download protein structures (pdb) files for each ID
 
-Filter out structure files that do not contain SAM in its structure (might not be necessary)
+Filter out structure files that do not contain SAM in its structure
