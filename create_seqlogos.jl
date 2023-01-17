@@ -7,6 +7,7 @@ using LogExpFunctions: xlogx
 using PyCall
 using Pandas
 
+#TODO: Modify to work with cleaned clusters and clean cifs
 function parse_commandline()
     s = ArgParseSettings()
     @add_arg_table! s begin

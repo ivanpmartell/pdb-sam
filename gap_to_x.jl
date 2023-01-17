@@ -39,7 +39,7 @@ for (root, dirs, files) in ProgressBar(walkdir(parsed_args["input"]))
                 cmd = `sed '/^[^>]/ s/-/X/g' $f_path`
             end
             f_out = read(cmd, String)
-            f_out_path = joinpath(parsed_args["output"], f_path_no_root_folder)
+            f_out_path = lstrip(joinpath(parsed_args["output"], f_path_no_root_folder), '/')
             if !(isfile(f_out_path))
                 mkpath(dirname(f_out_path))
                 touch(f_out_path)

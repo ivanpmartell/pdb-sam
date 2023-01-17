@@ -23,9 +23,9 @@ mkpath(parsed_args["output"])
 
 for (root, dirs, files) in ProgressBar(walkdir(parsed_args["input"]))
     for f in files
-        if f == "cif_sequences.fa"
+        if endswith(f, ".fa")
             f_path = joinpath(root,f)
-            f_path_no_root_folder = replace(f_path, Regex("^$(parsed_args["input"])")=>"")
+            f_path_no_root_folder = lstrip(replace(f_path, Regex("^$(parsed_args["input"])")=>""), '/')
             f_out_path = joinpath(parsed_args["output"], "$f_path_no_root_folder.ala")
             if !(isdir(dirname(f_out_path)))
                 mkpath(dirname(f_out_path))

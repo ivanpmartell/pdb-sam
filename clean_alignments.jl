@@ -45,6 +45,5 @@ for f in glob("*.ala", parsed_args["input"])
     f_path = last(split(f, "/"))
     out_path = joinpath(parsed_args["output"], f_path)
     f_out = read(`sed '/^[^>]/ s/X/-/g' $f`, String)
-    #TODO: Remove 100% similarity after cleanup
     write_clean_records(f_out, out_path)
 end
