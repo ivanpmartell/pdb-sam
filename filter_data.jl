@@ -24,10 +24,10 @@ FASTA.Writer(open(parsed_args["output"], "w")) do writer
         for record in reader
             try
                 if occursin("mol:protein", description(record)) &&
-                        !in(sequence(LongAA, record), seqs) &&
+                        !in(sequence(LongAminoAcidSeq, record), seqs) &&
                         isnothing(match(onlyX, sequence(String, record)))
                     write(writer, record)
-                    push!(seqs, sequence(LongAA, record))
+                    push!(seqs, sequence(LongAminoAcidSeq, record))
                 end
             catch e
                 println("Skipping record (malformed)")

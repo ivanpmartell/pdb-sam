@@ -10,6 +10,7 @@ struct AACoverage
     coverage_seqs::Set{Int64}
 end
 
+#TODO: Add file to look for instead of just cif_sequences.fa
 function parse_commandline()
     s = ArgParseSettings()
     @add_arg_table! s begin
@@ -168,10 +169,13 @@ function ensure_new_file(f)
 end
 
 parsed_args = parse_commandline()
+if isnothing(parsed_args["output"])
+    parsed_args["output"] = parsed_args["input"]
+end
 mkpath(dirname(parsed_args["output"]))
 for (root, dirs, files) in ProgressBar(walkdir(parsed_args["input"]))
     for f in files
-        if f == "cif_sequences.fa.ala"
+        if f == "nogap_cif_sequences.fa.ala"
             f_path = joinpath(root,f)
             records = Vector{FASTX.FASTA.Record}()
             FASTA.Reader(open(f_path)) do reader

@@ -8,13 +8,14 @@ function parse_commandline()
     s = ArgParseSettings()
     @add_arg_table! s begin
         "--input", "-i"
-            help = "Input directory. Fasta files should be inside"
+            help = "Input directory"
             required = true
         "--extension", "-e"
             help = "Extension for input files. Usually '.fa' or '.ala'"
             required = true
         "--output", "-o"
             help = "Output directory. Ignore to write files in input directory"
+            required = true
         "--nested", "-n"
             help = "Choose this flag if fasta files are nested within directories inside input directory"
             action = :store_true
@@ -47,7 +48,9 @@ function separate_records(in_path)
             #seq_len = length(seq)
             rec_len = extract_len(description(record))
             if seq_len === rec_len
-                full_len_records += 1
+                if count(!iscertain, seq) === 0 
+                    full_len_records += 1
+                end
             end
             if parsed_args["separate"]
                 FASTA.Writer(open(out_file, "w")) do writer
@@ -64,10 +67,6 @@ function separate_records(in_path)
 end
 
 parsed_args = parse_commandline()
-if isnothing(parsed_args["output"])
-    parsed_args["output"] = parsed_args["input"]
-end
-mkpath(dirname(parsed_args["output"]))
 
 full_length_cluster_count = 0
 if parsed_args["nested"]
@@ -76,6 +75,12 @@ if parsed_args["nested"]
             if endswith(f, parsed_args["extension"])
                 f_path = joinpath(root,f)
                 if separate_records(f_path)
+                    if !isnothing(parsed_args["output"])
+                        f_path_no_root_folder = lstrip(replace(f_path, Regex("^$(parsed_args["input"])")=>""), '/')
+                        f_out_path = joinpath(parsed_args["output"], f_path_no_root_folder)
+                        mkpath(dirname(f_out_path))
+                        run(`cp $(f_path) $(f_out_path)`)
+                    end
                     global full_length_cluster_count += 1
                 end
             end

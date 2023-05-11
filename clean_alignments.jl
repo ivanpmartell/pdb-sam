@@ -20,8 +20,8 @@ function write_clean_records(str_input, out_path)
     FASTA.Writer(open(out_path, "w")) do writer
         FASTA.Reader(IOBuffer(str_input)) do reader
             for record in reader
-                if !in(sequence(LongAA, record), unique_seqs)
-                    push!(unique_seqs, sequence(LongAA, record))
+                if !in(sequence(LongAminoAcidSeq, record), unique_seqs)
+                    push!(unique_seqs, sequence(LongAminoAcidSeq, record))
                     write(writer, record)
                 else
                     println("Removed duplicate sequence $(identifier(record)) on $out_path")
