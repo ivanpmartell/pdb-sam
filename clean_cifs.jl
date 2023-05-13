@@ -114,7 +114,7 @@ function keep_indispensable_seqs(records, indispensable_seqs, file_out, file_in)
         if !(file_in == file_out)
             #if output folder is different then copy indispensable cif into output folder
             for cif_path in glob("*.cif", dirname(file_in))
-                cif_file = last(split(cif_path, "/"))
+                cif_file = basename(cif_path)
                 if in(replace(cif_file, r".cif$"=>""), indispensable_recs)
                     output_filepath = joinpath(dirname(file_out), cif_file)
                     ensure_new_file(output_filepath)
@@ -124,7 +124,7 @@ function keep_indispensable_seqs(records, indispensable_seqs, file_out, file_in)
         else
             #if output folder == input folder then delete unnecessary cif
             for cif_path in glob("*.cif", dirname(file_in))
-                cif_file = last(split(cif_path, "/"))
+                cif_file = basename(cif_path)
                 if in(replace(cif_file, r".cif$"=>""), indispensable_recs)
                     rm(cif_path)
                 end
@@ -172,7 +172,7 @@ parsed_args = parse_commandline()
 if isnothing(parsed_args["output"])
     parsed_args["output"] = parsed_args["input"]
 end
-mkpath(dirname(parsed_args["output"]))
+mkpath(parsed_args["output"])
 for (root, dirs, files) in ProgressBar(walkdir(parsed_args["input"]))
     for f in files
         if f == "nogap_cif_sequences.fa.ala"

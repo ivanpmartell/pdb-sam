@@ -27,3 +27,5 @@ ncbi-blast-2.8.1+/
 *.tm2_simp
 *.tm8_simp
 *_noprof
+*.dssp
+*.mmcif
