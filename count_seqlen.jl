@@ -15,7 +15,6 @@ function parse_commandline()
             required = true
         "--output", "-o"
             help = "Output directory. Ignore to write files in input directory"
-            required = true
         "--nested", "-n"
             help = "Choose this flag if fasta files are nested within directories inside input directory"
             action = :store_true
@@ -110,6 +109,10 @@ if parsed_args["nested"]
 else
     for f in ProgressBar(glob("*$(parsed_args["extension"])", parsed_args["input"]))
         if separate_records(f)
+            if !isnothing(parsed_args["output"])
+                mkpath(parsed_args["output"])
+                cp(f, parsed_args["output"], force=true)
+            end
             global full_length_cluster_count += 1
         end
     end

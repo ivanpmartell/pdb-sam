@@ -1,1 +1,1 @@
-#TODO: Keep clusters that do not contain any gaps or X
+#TODO: Keep clusters that do not contain any gaps or X (part of count_seqlen)
