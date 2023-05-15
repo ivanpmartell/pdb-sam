@@ -9,14 +9,24 @@ function parse_commandline()
         "--extension", "-e"
             help = "Extension for input files. Usually '.fa' or '.ala'"
             required = true
-        "--spot1d_dir", "-s"
-            help = "Directory containing SPOT-1D repository"
+        "--spot1d_single_dir", "-s"
+            help = "Directory containing SPOT-1D-Single repository"
             required = true
         "--output", "-o"
             help = "Output directory. Ignore to write files in input directory"
 
     end
     return parse_args(s)
+end
+
+function create_filelist(current_file_path, filelist_path)
+    abs_file_path = current_file_path
+    if !startswith(current_file_path, '/')
+        abs_file_path = joinpath(pwd(), current_file_path)
+    end
+    open(filelist_path, "w") do writer
+        println(writer, abs_file_path)
+    end
 end
 
 parsed_args = parse_commandline()
@@ -28,18 +38,19 @@ for (root, dirs, files) in walkdir(parsed_args["input"])
         if endswith(f, parsed_args["extension"])
             f_path = joinpath(root,f)
             f_noext = splitext(f)[1]
-            spot1d_input_dir = joinpath(parsed_args["spot1d_dir"], "inputs/")
-            spot1d_input_file = joinpath(spot1d_input_dir, "$(f_noext).fasta")
-            cp(f_path, spot1d_input_file, force=true)
-            run(Cmd(`./run_spot1d.sh`, dir=parsed_args["spot1d_dir"]))
-            #Move files from spot1d outputs to output folder once processed. Clean spot1d directory.
-            spot1d_output_dir = joinpath(parsed_args["spot1d_dir"], "outputs/")
+            filelist_path = "tmp_s1ds_filelist.txt"
+            abs_filelist_path = joinpath(pwd(), filelist_path)
+            create_filelist(f_path, filelist_path)
             f_path_no_root_folder = lstrip(replace(f_path, Regex("^$(parsed_args["input"])")=>""), '/')
             f_out_path = dirname(joinpath(parsed_args["output"], f_path_no_root_folder))
-            f_out_path = joinpath(f_out_path, "spot1d/")
+            f_out_path = joinpath(f_out_path, "spot1d_single/")
             mkpath(f_out_path)
-            mv(joinpath(spot1d_output_dir, "$(f_noext).spot1d"), joinpath(f_out_path, "$(f_noext).spot1d"))
-            rm(spot1d_input_file)
+            abs_f_out_path = f_out_path
+            if !startswith(f_out_path, '/')
+                abs_f_out_path = joinpath(pwd(), f_out_path)
+            end
+            run(Cmd(`python spot1d_single.py --file_list $(abs_filelist_path) --save_path $(abs_f_out_path) --device cpu`, dir=parsed_args["spot1d_single_dir"]))
+            rm(abs_filelist_path)
         end
     end
 end

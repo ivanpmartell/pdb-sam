@@ -3,6 +3,7 @@ cd-hit/
 EMBOSS-6.6.0/
 julia-1.8.2/
 ncbi-blast-2.8.1+/
+*.txt
 *.fa
 *.ala
 *.clstr
@@ -31,3 +32,5 @@ ncbi-blast-2.8.1+/
 *.rsa
 *.dssp
 *.mmcif
+*.spot1d
+*.csv

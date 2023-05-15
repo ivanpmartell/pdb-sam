@@ -18,3 +18,5 @@ julia download_cifs.jl -i pristine_mmcifs/ -d -n
 julia secondary_structure/raptorx.jl -i pristine_mmcifs/ -e .fa -r /storage/ssp-tools/2dstruc/Predict_Property/
 julia secondary_structure/sspro8.jl -i pristine_mmcifs -e .fa -s /storage/ssp-tools/2dstruc/SCRATCH-1D_2.0/
 julia secondary_structure/spot1d.jl -i pristine_mmcifs/ -e .fa -s /storage/ssp-tools/2dstruc/SPOT-1D-local/
+julia secondary_structure/spot1d_single.jl -i pristine_mmcifs/ -e .fa -s /storage/ssp-tools/2dstruc/spot_1d_single/SPOT-1D-Single/
+julia secondary_structure/spot1d_lm.jl -i pristine_mmcifs/ -e .fa -s /storage/ssp-tools/2dstruc/spot_1d_lm/SPOT-1D-LM/
