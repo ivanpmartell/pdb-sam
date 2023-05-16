@@ -9,7 +9,7 @@ function parse_commandline()
         "--extension", "-e"
             help = "Extension for input files. Usually '.fa' or '.ala'"
             required = true
-        "--sspro8_dir", "-s"
+        "--s4pred_dir", "-s"
             help = "Directory containing SSPro8 repository"
             required = true
         "--output", "-o"
@@ -30,12 +30,12 @@ for (root, dirs, files) in walkdir(parsed_args["input"])
             f_noext = splitext(f)[1]
             f_path_no_root_folder = lstrip(replace(f_path, Regex("^$(parsed_args["input"])")=>""), '/')
             f_out_path = dirname(joinpath(parsed_args["output"], f_path_no_root_folder))
-            f_out_path = joinpath(f_out_path, "sspro8/$(f_noext)")
-            if !isfile("$(f_out_path).ss8")
+            f_out_path = joinpath(f_out_path, "s4pred/$(f_noext).ss2")
+            if !isfile("$(f_out_path)")
                 println("Working on $(f_path)")
                 mkpath(dirname(f_out_path))
-                sspro8 = joinpath(parsed_args["sspro8_dir"], "bin/run_scratch1d_predictors.sh")
-                run(`$(sspro8) --input_fasta $(f_path) --output_prefix $(f_out_path)`)
+                s4pred = joinpath(parsed_args["s4pred_dir"], "run_model.py")
+                write("$(f_out_path)", read(`python $(s4pred) $(f_path)`))
             end
         end
     end

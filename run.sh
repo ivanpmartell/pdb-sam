@@ -20,3 +20,4 @@ julia secondary_structure/sspro8.jl -i pristine_mmcifs -e .fa -s /storage/ssp-to
 julia secondary_structure/spot1d.jl -i pristine_mmcifs/ -e .fa -s /storage/ssp-tools/2dstruc/SPOT-1D-local/
 julia secondary_structure/spot1d_single.jl -i pristine_mmcifs/ -e .fa -s /storage/ssp-tools/2dstruc/spot_1d_single/SPOT-1D-Single/
 julia secondary_structure/spot1d_lm.jl -i pristine_mmcifs/ -e .fa -s /storage/ssp-tools/2dstruc/spot_1d_lm/SPOT-1D-LM/
+julia secondary_structure/s4pred.jl -i pristine_mmcifs/ -e .fa -s /storage/ssp-tools/2dstruc/s4pred/

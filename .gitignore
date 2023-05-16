@@ -34,3 +34,4 @@ ncbi-blast-2.8.1+/
 *.mmcif
 *.spot1d
 *.csv
+*.ss2
