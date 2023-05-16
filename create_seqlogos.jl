@@ -16,6 +16,8 @@ function parse_commandline()
             required = true
         "--output", "-o"
             help = "Output directory. Cluster folders with sequence logo files will be saved here. Ignore to use input directory"
+        "--nested", "-n"
+            action = :store_true
     end
     return parse_args(s)
 end
@@ -82,34 +84,63 @@ if isnothing(parsed_args["output"])
 end
 aa_str = aa_alphabet_str()
 alphabet_len = length(aa_str)
-for f in ProgressBar(glob("*.ala", parsed_args["input"]))
-    cluster = chop(last(split(f, "/")),tail=7)
-    cluster_path = joinpath(parsed_args["output"], cluster)
-    try
-        mkdir(cluster_path)
-    catch e
-        continue
-    end
-    seqs_len = get_sequences_length(f)
-    freqs = zeros(Int, (alphabet_len, seqs_len))
-    FASTA.Reader(open(f)) do reader
-        for record in reader
-            seq = sequence(LongAA, record)
-            for i in eachindex(seq)
-                aa = seq[i]
-                if is_standard(aa)
-                    freqs[aa_index(aa, alphabet_len, i)] += 1
+
+if !parsed_args["nested"]
+    for f in ProgressBar(glob("*.ala", parsed_args["input"]))
+        cluster = splitext(basename(f))[1]
+        cluster_path = joinpath(parsed_args["output"], cluster)
+        mkpath(cluster_path)
+        seqs_len = get_sequences_length(f)
+        freqs = zeros(Int, (alphabet_len, seqs_len))
+        FASTA.Reader(open(f)) do reader
+            for record in reader
+                seq = sequence(LongAminoAcidSeq, record)
+                for i in eachindex(seq)
+                    aa = seq[i]
+                    if is_standard(aa)
+                        freqs[aa_index(aa, alphabet_len, i)] += 1
+                    end
                 end
             end
         end
+        seqlogo_mat = seqlogo_matrix(freqs)
+        seqlogo_df = DataFrame(seqlogo_mat; columns=split(aa_str,""))
+        seqlogo_df = fillna(seqlogo_df, 0)
+        pysave_seqlogo(seqlogo_df, "$(cluster_path)/seqlogo", 100)
+        try
+            rm(cluster_path)
+        catch e
+            continue
+        end
     end
-    seqlogo_mat = seqlogo_matrix(freqs)
-    seqlogo_df = DataFrame(seqlogo_mat; columns=split(aa_str,""))
-    seqlogo_df = fillna(seqlogo_df, 0)
-    pysave_seqlogo(seqlogo_df, "$(cluster_path)/seqlogo", 100)
-    try
-        rm(cluster_path)
-    catch e
-        continue
+else
+    for (root, dirs, files) in ProgressBar(walkdir(parsed_args["input"]))
+        for f in files
+            if endswith(f, ".ala")
+                f_path = joinpath(root,f)
+                f_path_no_root_folder = lstrip(replace(f_path, Regex("^$(parsed_args["input"])")=>""), '/')
+                f_out_path = dirname(joinpath(parsed_args["output"], f_path_no_root_folder))
+                f_out_path = joinpath(f_out_path, "seqlogos/")
+                mkpath(f_out_path)
+                seqs_len = get_sequences_length(f_path)
+                freqs = zeros(Int, (alphabet_len, seqs_len))
+                FASTA.Reader(open(f_path)) do reader
+                    for record in reader
+                        seq = sequence(LongAminoAcidSeq, record)
+                        for i in eachindex(seq)
+                            aa = seq[i]
+                            if is_standard(aa)
+                                freqs[aa_index(aa, alphabet_len, i)] += 1
+                            end
+                        end
+                    end
+                end
+                seqlogo_mat = seqlogo_matrix(freqs)
+                seqlogo_df = DataFrame(seqlogo_mat; columns=split(aa_str,""))
+                seqlogo_df = fillna(seqlogo_df, 0)
+                seqlogos_path = joinpath(f_out_path, "logo")
+                pysave_seqlogo(seqlogo_df, seqlogos_path, 100)
+            end
+        end
     end
 end
