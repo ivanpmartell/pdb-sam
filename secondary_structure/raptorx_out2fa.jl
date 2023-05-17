@@ -1,0 +1,53 @@
+using ArgParse
+using ProgressBars
+using DelimitedFiles
+using DataFrames
+using FASTX
+using BioSequences
+
+function parse_commandline()
+    s = ArgParseSettings()
+    @add_arg_table! s begin
+        "--input", "-i"
+            help = "Directory with clusters containing RaptorX predictions"
+            required = true
+        "--extension", "-e"
+            help = "RaptorX output files' extension. Use .ss8 for now"
+            required = true
+        "--output", "-o"
+            help = "Output directory where prediction fasta format file will be written. Ignore to use input directory"
+    end
+    return parse_args(s)
+end
+
+parsed_args = parse_commandline()
+if isnothing(parsed_args["output"])
+    parsed_args["output"] = parsed_args["input"]
+end
+for (root, dirs, files) in ProgressBar(walkdir(parsed_args["input"]))
+    for f in files
+        if endswith(f, parsed_args["extension"])
+            f_path = joinpath(root,f)
+            prediction_dir = last(split(dirname(f_path), '/'))
+            if prediction_dir == "raptorx"
+                delimited = readdlm(f_path, ' ', comments=true)
+                predictions = Matrix{Any}(undef, size(delimited, 1), 11)
+                for i in axes(delimited, 1)
+                    predictions[i, :] = filter(!isempty, delimited[i, :])
+                end
+                pred_df = DataFrame(predictions, ["idx", "aa", "ss8", "pH", "pG", "pI", "pE", "pB", "pT", "pS", "pL"])
+                pred_array = pred_df[:, "ss8"]
+                pred_str = join(pred_array)
+                #Write fasta file with single record id from filename
+                f_noext = splitext(f)[1]
+                f_path_no_root_folder = lstrip(replace(f_path, Regex("^$(parsed_args["input"])")=>""), '/')
+                dir_out_path = dirname(joinpath(parsed_args["output"], f_path_no_root_folder))
+                mkpath(dir_out_path)
+                f_out_path = joinpath(dir_out_path, "$(f_noext).sspfa")
+                FASTA.Writer(open(f_out_path, "w")) do writer
+                    write(writer, FASTA.Record(f_noext, LongCharSeq(pred_str)))
+                end
+            end
+        end
+    end
+end
