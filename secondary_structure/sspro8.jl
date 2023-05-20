@@ -33,9 +33,14 @@ for (root, dirs, files) in walkdir(parsed_args["input"])
             f_out_path = joinpath(f_out_path, "sspro8/$(f_noext)")
             if !isfile("$(f_out_path).ss8")
                 println("Working on $(f_path)")
-                mkpath(dirname(f_out_path))
-                sspro8 = joinpath(parsed_args["sspro8_dir"], "bin/run_scratch1d_predictors.sh")
-                run(`$(sspro8) --input_fasta $(f_path) --output_prefix $(f_out_path)`)
+                try
+                    mkpath(dirname(f_out_path))
+                    sspro8 = joinpath(parsed_args["sspro8_dir"], "bin/run_scratch1d_predictors.sh")
+                    run(`$(sspro8) --input_fasta $(f_path) --output_prefix $(f_out_path)`)
+                catch e
+                    println("Error on $(f_path)")
+                    continue
+                end
             end
         end
     end

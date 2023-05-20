@@ -38,19 +38,27 @@ for (root, dirs, files) in walkdir(parsed_args["input"])
         if endswith(f, parsed_args["extension"])
             f_path = joinpath(root,f)
             f_noext = splitext(f)[1]
-            filelist_path = "tmp_s1ds_filelist.txt"
-            abs_filelist_path = joinpath(pwd(), filelist_path)
-            create_filelist(f_path, filelist_path)
             f_path_no_root_folder = lstrip(replace(f_path, Regex("^$(parsed_args["input"])")=>""), '/')
             f_out_path = dirname(joinpath(parsed_args["output"], f_path_no_root_folder))
-            f_out_path = joinpath(f_out_path, "spot1d_single/")
-            mkpath(f_out_path)
-            abs_f_out_path = f_out_path
-            if !startswith(f_out_path, '/')
-                abs_f_out_path = joinpath(pwd(), f_out_path)
+            f_out_dir = joinpath(f_out_path, "spot1d_single/")
+            if !isfile(joinpath(f_out_dir, "$(f_noext).csv"))
+                println("Working on $(f_path)")
+                try
+                    filelist_path = "tmp_s1ds_filelist.txt"
+                    abs_filelist_path = joinpath(pwd(), filelist_path)
+                    create_filelist(f_path, filelist_path)
+                    mkpath(f_out_dir)
+                    abs_f_out_dir = f_out_dir
+                    if !startswith(f_out_dir, '/')
+                        abs_f_out_dir = joinpath(pwd(), f_out_dir)
+                    end
+                    run(Cmd(`python spot1d_single.py --file_list $(abs_filelist_path) --save_path $(abs_f_out_dir) --device cpu`, dir=parsed_args["spot1d_single_dir"]))
+                    rm(abs_filelist_path)
+                catch e
+                    println("Error on $(f_path)")
+                    continue
+                end
             end
-            run(Cmd(`python spot1d_single.py --file_list $(abs_filelist_path) --save_path $(abs_f_out_path) --device cpu`, dir=parsed_args["spot1d_single_dir"]))
-            rm(abs_filelist_path)
         end
     end
 end

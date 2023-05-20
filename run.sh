@@ -21,3 +21,6 @@ julia secondary_structure/spot1d.jl -i pristine_mmcifs/ -e .fa -s /storage/ssp-t
 julia secondary_structure/spot1d_single.jl -i pristine_mmcifs/ -e .fa -s /storage/ssp-tools/2dstruc/spot_1d_single/SPOT-1D-Single/
 julia secondary_structure/spot1d_lm.jl -i pristine_mmcifs/ -e .fa -s /storage/ssp-tools/2dstruc/spot_1d_lm/SPOT-1D-LM/
 julia secondary_structure/s4pred.jl -i pristine_mmcifs/ -e .fa -s /storage/ssp-tools/2dstruc/s4pred/
+#Normalize predictions to fasta output
+julia secondary_structure/raptorx_out2fa.jl -i test_mmcifs/ -e .ss8
+

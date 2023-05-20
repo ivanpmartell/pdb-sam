@@ -33,9 +33,14 @@ for (root, dirs, files) in walkdir(parsed_args["input"])
             f_out_path = joinpath(f_out_path, "s4pred/$(f_noext).ss2")
             if !isfile("$(f_out_path)")
                 println("Working on $(f_path)")
-                mkpath(dirname(f_out_path))
-                s4pred = joinpath(parsed_args["s4pred_dir"], "run_model.py")
-                write("$(f_out_path)", read(`python $(s4pred) $(f_path)`))
+                try
+                    mkpath(dirname(f_out_path))
+                    s4pred = joinpath(parsed_args["s4pred_dir"], "run_model.py")
+                    write("$(f_out_path)", read(`python $(s4pred) $(f_path)`))
+                catch e
+                    println("Error on $(f_path)")
+                    continue
+                end
             end
         end
     end

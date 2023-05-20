@@ -30,16 +30,26 @@ for (root, dirs, files) in walkdir(parsed_args["input"])
             f_noext = splitext(f)[1]
             spot1d_input_dir = joinpath(parsed_args["spot1d_dir"], "inputs/")
             spot1d_input_file = joinpath(spot1d_input_dir, "$(f_noext).fasta")
-            cp(f_path, spot1d_input_file, force=true)
-            run(Cmd(`./run_spot1d.sh`, dir=parsed_args["spot1d_dir"]))
-            #Move files from spot1d outputs to output folder once processed. Clean spot1d directory.
             spot1d_output_dir = joinpath(parsed_args["spot1d_dir"], "outputs/")
             f_path_no_root_folder = lstrip(replace(f_path, Regex("^$(parsed_args["input"])")=>""), '/')
             f_out_path = dirname(joinpath(parsed_args["output"], f_path_no_root_folder))
-            f_out_path = joinpath(f_out_path, "spot1d/")
-            mkpath(f_out_path)
-            mv(joinpath(spot1d_output_dir, "$(f_noext).spot1d"), joinpath(f_out_path, "$(f_noext).spot1d"))
-            rm(spot1d_input_file)
+            f_out_dir = joinpath(f_out_path, "spot1d/")
+            f_out = joinpath(f_out_dir, "$(f_noext).spot1d")
+            if !isfile("$(f_out)")
+                println("Working on $(f_path)")
+                try
+                    foreach(rm, filter(endswith(".fasta"), readdir(parsed_args["spot1d_dir"],join=true)))
+                    cp(f_path, spot1d_input_file, force=true)
+                    run(Cmd(`./run_spot1d.sh`, dir=parsed_args["spot1d_dir"]))
+                    #Move files from spot1d outputs to output folder once processed. Clean spot1d directory.
+                    mkpath(f_out_dir)
+                    mv(joinpath(spot1d_output_dir, "$(f_noext).spot1d"), f_out)
+                    rm(spot1d_input_file)
+                catch e
+                    println("Error on $(f_path)")
+                    continue
+                end
+            end
         end
     end
 end
