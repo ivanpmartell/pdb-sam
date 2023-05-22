@@ -12,8 +12,7 @@ function parse_commandline()
             help = "Directory with clusters containing Spot1D predictions"
             required = true
         "--extension", "-e"
-            help = "Spot1D output files' extension. Usually .spot1d"
-            required = true
+            help = "Spot1D output files' extension. Default .spot1d"
         "--output", "-o"
             help = "Output directory where the prediction fasta file will be written. Ignore to use input directory"
     end
@@ -23,6 +22,9 @@ end
 parsed_args = parse_commandline()
 if isnothing(parsed_args["output"])
     parsed_args["output"] = parsed_args["input"]
+end
+if isnothing(parsed_args["extension"])
+    parsed_args["extension"] = ".spot1d"
 end
 for (root, dirs, files) in ProgressBar(walkdir(parsed_args["input"]))
     for f in files

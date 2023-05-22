@@ -38,7 +38,7 @@ for (root, dirs, files) in walkdir(parsed_args["input"])
             if !isfile("$(f_out)")
                 println("Working on $(f_path)")
                 try
-                    foreach(rm, filter(endswith(".fasta"), readdir(parsed_args["spot1d_dir"],join=true)))
+                    foreach(rm, filter(endswith(".fasta"), readdir(spot1d_input_dir,join=true)))
                     cp(f_path, spot1d_input_file, force=true)
                     run(Cmd(`./run_spot1d.sh`, dir=parsed_args["spot1d_dir"]))
                     #Move files from spot1d outputs to output folder once processed. Clean spot1d directory.

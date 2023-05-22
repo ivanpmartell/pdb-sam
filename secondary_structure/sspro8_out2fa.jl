@@ -12,8 +12,7 @@ function parse_commandline()
             help = "Directory with clusters containing SSPro8 predictions"
             required = true
         "--extension", "-e"
-            help = "SSPro8 output files' extension. Usually .ss8"
-            required = true
+            help = "SSPro8 output files' extension. Default .ss8"
         "--output", "-o"
             help = "Output directory where the prediction fasta file will be written. Ignore to use input directory"
     end
@@ -32,6 +31,9 @@ end
 parsed_args = parse_commandline()
 if isnothing(parsed_args["output"])
     parsed_args["output"] = parsed_args["input"]
+end
+if isnothing(parsed_args["extension"])
+    parsed_args["extension"] = ".ss8"
 end
 for (root, dirs, files) in ProgressBar(walkdir(parsed_args["input"]))
     for f in files
