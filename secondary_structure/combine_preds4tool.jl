@@ -1,0 +1,1 @@
+#For each tool prediction in a cluster, combine all sspfa and ssfa files into one

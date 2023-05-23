@@ -1,0 +1,1 @@
+#For each record in a cluster, combine all sspfa and ssfa files into one

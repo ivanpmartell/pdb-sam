@@ -101,7 +101,7 @@ if isnothing(parsed_args["extension"])
     parsed_args["extension"] = ".mmcif"
 end
 
-for (root, dirs, files) in walkdir(parsed_args["input"])
+for (root, dirs, files) in ProgressBar(walkdir(parsed_args["input"]))
     for f in files
         if endswith(f, parsed_args["extension"])
             f_path = joinpath(root,f)
@@ -110,7 +110,6 @@ for (root, dirs, files) in walkdir(parsed_args["input"])
             f_out_dir = dirname(joinpath(parsed_args["output"], f_path_no_root_folder))
             f_out_path = joinpath(f_out_dir, "$(f_noext).ssfa")
             if !isfile(f_out_path)
-                println("Working on $(f_path)")
                 try
                     sequence_file = joinpath(root, "$(f_noext).fa")
                     chain = last(split(f_noext, '_'))
@@ -119,7 +118,7 @@ for (root, dirs, files) in walkdir(parsed_args["input"])
                     assignment = normalize_dssp_ouput(assign_df, length(assign_seq))
                     #Write assignment to .ssfa
                     FASTA.Writer(open(f_out_path, "w")) do writer
-                        write(writer, FASTA.Record(f_noext, LongCharSeq(assignment)))
+                        write(writer, FASTA.Record("dssp_$(f_noext)", LongCharSeq(assignment)))
                     end
                 catch e
                     println("Error on $(f_path)")
