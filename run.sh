@@ -11,7 +11,7 @@ julia gap_to_x.jl -i mmcifs/ -o ungapped_mmcifs -p nogap_
 julia align_fasta.jl -i ungapped_mmcifs
 #If the first copy command was forgotten, use: cp -r mmcifs/* ungapped_mmcifs/
 julia clean_cifs.jl -i ungapped_mmcifs/ -o cleaned_ungapped_mmcifs
-julia count_seqlen.jl -i cleaned_ungapped_mmcifs/ -o pristine_mmcifs -e .ala -n
+julia pristine_cifs.jl -i cleaned_ungapped_mmcifs/ -o pristine_mmcifs -e .ala -n
 #Secondary structure assignment (DSSP)
 julia download_cifs.jl -i pristine_mmcifs/ -d -n
 #Secondary structure prediction on pristine mmcifs
@@ -21,6 +21,16 @@ julia secondary_structure/spot1d.jl -i pristine_mmcifs/ -e .fa -s /storage/ssp-t
 julia secondary_structure/spot1d_single.jl -i pristine_mmcifs/ -e .fa -s /storage/ssp-tools/2dstruc/spot_1d_single/SPOT-1D-Single/
 julia secondary_structure/spot1d_lm.jl -i pristine_mmcifs/ -e .fa -s /storage/ssp-tools/2dstruc/spot_1d_lm/SPOT-1D-LM/
 julia secondary_structure/s4pred.jl -i pristine_mmcifs/ -e .fa -s /storage/ssp-tools/2dstruc/s4pred/
-#Normalize predictions to fasta output
-julia secondary_structure/raptorx_out2fa.jl -i test_mmcifs/ -e .ss8
+#Normalize predictions to fasta output (s4pred is 3-class)
+julia secondary_structure/raptorx_out2fa.jl -i pristine_mmcifs/
+julia secondary_structure/spot1d_out2fa.jl -i pristine_mmcifs/
+julia secondary_structure/spot1d_lm_out2fa.jl -i pristine_mmcifs/
+julia secondary_structure/spot1d_single_out2fa.jl -i pristine_mmcifs/
+julia secondary_structure/sspro8_out2fa.jl -i pristine_mmcifs/
+#Agglomerate normalized predictions
 
+
+
+#Normalize DSSP structure assignment
+julia secondary_structure/dssp_out2fa.jl -i pristine_mmcifs/
+#Create results file

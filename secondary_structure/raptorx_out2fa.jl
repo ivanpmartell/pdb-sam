@@ -42,7 +42,8 @@ for (root, dirs, files) in ProgressBar(walkdir(parsed_args["input"]))
                     for i in axes(delimited, 1)
                         predictions[i, :] = filter(!isempty, delimited[i, :])
                     end
-                    pred_df = DataFrame(predictions, ["idx", "aa", "ss8", "pH", "pG", "pI", "pE", "pB", "pT", "pS", "pL"])
+                    pred_df = DataFrame(predictions, ["idx", "aa", "ss8", "pH", "pG", "pI", "pE", "pB", "pT", "pS", "pC"])
+                    pred_df[!, "ss8"][pred_df[!, "ss8"] .== "L"] .= "C"
                     pred_array = pred_df[:, "ss8"]
                     pred_str = join(pred_array)
                     #Write fasta file with single record id from filename
