@@ -35,14 +35,14 @@ for (root, dirs, files) in ProgressBar(walkdir(parsed_args["input"]))
             cluster_dir = joinpath(root, dir)
             f_path_no_root_folder = lstrip(replace(cluster_dir, Regex("^$(parsed_args["input"])")=>""), '/')
             f_out_dir = joinpath(parsed_args["output"], f_path_no_root_folder)
-            f_out_path = joinpath(f_out_dir, "Cluster.result")
+            f_out_path = joinpath(f_out_dir, "$(dir).res")
             if !isfile(f_out_path)
+                mkpath(f_out_dir)
                 for (clstr_root, clstr_dirs, clstr_files) in walkdir(cluster_dir)
                     for f in clstr_files
                         f_noext, f_ext = splitext(f)
                         if f_ext in [parsed_args["dssp_extension"], parsed_args["pred_extension"]]
                             f_path = joinpath(clstr_root, f)
-                            mkpath(f_out_dir)
                             FASTA.Reader(open(f_path, "r")) do reader
                                 records = collect(reader)
                                 for rec in records
