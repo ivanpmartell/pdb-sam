@@ -46,7 +46,7 @@ for (root, dirs, files) in ProgressBar(walkdir(parsed_args["input"]))
                     #Write fasta file with single record id from filename
                     mkpath(f_out_dir)
                     FASTA.Writer(open(f_out_path, "w")) do writer
-                        write(writer, FASTA.Record("spot1d_$(f_noext)", LongCharSeq(pred_str)))
+                        write(writer, FASTA.Record("$(f_noext)_spot1d", LongCharSeq(pred_str)))
                     end
                 end
             end

@@ -28,6 +28,22 @@ function parse_commandline()
     return parse_args(s)
 end
 
+function fix_dssp_formatting_errors(cif_path, dssp_out_path)
+    fix_list = Set()
+    #TODO: FIX check if line already contains special character ' and avoid if such
+    for line in eachline(cif_path)
+        quotes_regex = r"\"([^\"]*)\""
+        regex_match = match(quotes_regex, line)
+        if regex_match !== nothing
+            push!(fix_list, regex_match.captures[1])
+        end
+    end
+    for fix in fix_list
+        replacement = "\"$(fix)\""
+        run(`sed -i "s/$(fix)/$(replacement)/g" $(dssp_out_path)`)
+    end
+end
+
 parsed_args = parse_commandline()
 if isnothing(parsed_args["output"])
     parsed_args["output"] = parsed_args["input"]
@@ -46,7 +62,11 @@ if !parsed_args["nested"]
                 id, chain = split(current,"_")
                 downloaded_path = downloadpdb(id, dir=cluster_path, format=MMCIF)
                 if parse_args["write_dssp"]
-                    run(`mkdssp $(downloaded_path) $(file_name).mmcif`)
+                    dssp_out_file = "$(file_name).mmcif"
+                    if !isfile(dssp_out_file)
+                        run(`mkdssp $(downloaded_path) $(dssp_out_file)`)
+                        fix_dssp_formatting_errors(downloaded_path, dssp_out_file)
+                    end
                 end
                 struc = read(downloaded_path, MMCIF)[chain]
                 current_seq = LongAminoAcidSeq(struc, standardselector, gaps=true)

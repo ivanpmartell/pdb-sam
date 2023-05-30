@@ -44,8 +44,7 @@ for (root, dirs, files) in ProgressBar(walkdir(parsed_args["input"]))
                         if f_ext in [parsed_args["dssp_extension"], parsed_args["pred_extension"]]
                             f_path = joinpath(clstr_root, f)
                             FASTA.Reader(open(f_path, "r")) do reader
-                                records = collect(reader)
-                                for rec in records
+                                for rec in reader
                                     FASTA.Writer(open(f_out_path, "a")) do writer
                                         write(writer, rec)
                                     end

@@ -7,7 +7,6 @@ using LogExpFunctions: xlogx
 using PyCall
 using Pandas
 
-#TODO: Modify to work with cleaned clusters and clean cifs
 function parse_commandline()
     s = ArgParseSettings()
     @add_arg_table! s begin
@@ -36,7 +35,6 @@ end
 
 function aa_alphabet_str()
     alphabet_string = ""
-    i = 1
     for aa in alphabet(AminoAcid)
         if !is_standard(aa)
             continue
@@ -106,7 +104,8 @@ if !parsed_args["nested"]
         seqlogo_mat = seqlogo_matrix(freqs)
         seqlogo_df = DataFrame(seqlogo_mat; columns=split(aa_str,""))
         seqlogo_df = fillna(seqlogo_df, 0)
-        pysave_seqlogo(seqlogo_df, "$(cluster_path)/seqlogo", 100)
+        seqlogos_path = joinpath(cluster_path, "seqlogos", "logo")
+        pysave_seqlogo(seqlogo_df, seqlogos_path, 100)
         try
             rm(cluster_path)
         catch e
