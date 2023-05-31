@@ -29,19 +29,36 @@ function parse_commandline()
 end
 
 function fix_dssp_formatting_errors(cif_path, dssp_out_path)
-    fix_list = Set()
-    #TODO: FIX check if line already contains special character ' and avoid if such
-    for line in eachline(cif_path)
+    fix_list = Dict{Int64, Dict{String, String}}()
+    lines_to_fix = Dict{Int64, String}()
+    for (num, line) in enumerate(eachline(cif_path))
+        if contains(line, '\"')
+            lines_to_fix[num] = line
+        end
+    end
+    for (num, line) in lines_to_fix
+        fix_list[num] = Dict{String, String}()
         quotes_regex = r"\"([^\"]*)\""
         regex_match = match(quotes_regex, line)
         if regex_match !== nothing
-            push!(fix_list, regex_match.captures[1])
+            captured_match = regex_match.captures[1]
+            fixed_match = "\"$(captured_match)\""
+            fix_list[num][captured_match] = fixed_match
         end
     end
-    for fix in fix_list
-        replacement = "\"$(fix)\""
-        run(`sed -i "s/$(fix)/$(replacement)/g" $(dssp_out_path)`)
+    (tmppath, tmpio) = mktemp()
+    for line in eachline(dssp_out_path)
+        for (line_num, fixes) in fix_list
+            if replace(lines_to_fix[line_num], " "=>"",  "\""=>"") == replace(line, " "=>"")
+                for (unfixed, fix) in fixes
+                    line = replace(line, unfixed=>fix)
+                end
+            end
+        end
+        println(tmpio, line)
     end
+    close(tmpio)
+    mv(tmppath, dssp_out_path, force=true)
 end
 
 parsed_args = parse_commandline()
@@ -104,8 +121,10 @@ else
                         id, chain = split(current,"_")
                         downloaded_path = downloadpdb(id, dir=f_out_path, format=MMCIF)
                         if parsed_args["write_dssp"]
-                            if !isfile("$(file_out).mmcif")
-                                run(`mkdssp $(downloaded_path) $(file_out).mmcif`)
+                            dssp_out_file = "$(file_out).mmcif"
+                            if !isfile(dssp_out_file)
+                                run(`mkdssp $(downloaded_path) $(dssp_out_file)`)
+                                fix_dssp_formatting_errors(downloaded_path, dssp_out_file)
                             end
                         end
                         struc = read(downloaded_path, MMCIF)[chain]

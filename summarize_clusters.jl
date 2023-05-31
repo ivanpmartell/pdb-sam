@@ -79,7 +79,9 @@ for (root, dirs, files) in ProgressBar(walkdir(parsed_args["input"]))
                     end
                 end
             end
+            delete!(tool_set, "dssp")
             tools = collect(tool_set)
+
             if !isempty(cluster_results) && !isempty(cluster_records) && !isempty(cluster_mutations)
                 header = "$(dir) - $(length(cluster_records)) proteins - $(length(cluster_mutations)) mutation(s)"
                 open(f_out_path, "w") do writer
