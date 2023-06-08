@@ -11,28 +11,82 @@ function parse_commandline()
             required = true
         "--results_extension", "-r"
             help = "DSSP normalized output files' extension. Default .res"
+            default = ".res"
         "--seqs_extension", "-s"
-            help = "SSP normalized output files' extension. Default .fa.ala"
+            help = "SSP normalized output files' extension. Default .ala"
+            default = ".ala"
         "--mut_extension", "-m"
             help = "SSP normalized output files' extension. Default .mut"
+            default = ".mut"
         "--output", "-o"
             help = "Output directory where the agglomerated fasta file will be written. Ignore to use input directory"
+        "--max_range", "-x"
+            help = "Maximum number of amino acids in summary. Default 15"
+            default = 15
+        "--min_range", "-n"
+            help = "Minimum number of amino acids in summary. Default 5"
+            default = 5
     end
     return parse_args(s)
+end
+
+function calc_plus(x, y, d::Char)
+    return d=='r' ? x+y : x-y
+end
+
+function calc_minus(x, y, d::Char)
+    return d=='r' ? x-y : x+y
+end
+
+function getrange(seq, pos, maxrange, direction::Char)
+    seq_edge = direction=='r' ? length(seq) : 1
+    lookup = '.'
+    try
+        lookup = seq[pos]
+    catch e
+        return pos < 1 ? 1 : length(seq)
+    end
+    edge = calc_plus(pos, maxrange, direction)
+    for i in range(calc_plus(pos, 1, direction), edge, step=direction=='r' ? 1 : -1)
+        try
+            if seq[i] !== lookup
+                return calc_minus(i, 1, direction)
+            end
+        catch e
+            if isa(e, BoundsError)
+                return seq_edge
+            end
+        end
+    end
+    return edge
+end
+
+function get_secondary_struct_range(seq, pos)
+    #Get range of ss spanning position
+    minrange = parsed_args["min_range"]
+    maxrange = parsed_args["max_range"]
+    ss_range_right = getrange(seq, pos, maxrange, 'r')
+    ss_range_left = getrange(seq, pos, maxrange, 'l')
+    #Get range of before and after ss spanning
+    right_maxrange = maxrange - (ss_range_right - pos)
+    left_maxrange = maxrange - (pos - ss_range_left)
+    ss_on_right_range = getrange(seq, ss_range_right+1, right_maxrange, 'r')
+    ss_on_left_range = getrange(seq, ss_range_left-1, left_maxrange, 'l')
+    #Add to range until min range
+    current_right_range = ss_on_right_range - pos
+    current_left_range = pos - ss_on_left_range
+    if current_left_range < minrange
+        ss_on_left_range = max(1, pos-minrange)
+    end
+    if current_right_range < minrange
+        ss_on_right_range = min(length(seq), pos+minrange)
+    end
+    return ss_on_left_range:ss_on_right_range
 end
 
 parsed_args = parse_commandline()
 if isnothing(parsed_args["output"])
     parsed_args["output"] = parsed_args["input"]
-end
-if isnothing(parsed_args["results_extension"])
-    parsed_args["results_extension"] = ".res"
-end
-if isnothing(parsed_args["seqs_extension"])
-    parsed_args["seqs_extension"] = ".ala"
-end
-if isnothing(parsed_args["mut_extension"])
-    parsed_args["mut_extension"] = ".mut"
 end
 
 for (root, dirs, files) in ProgressBar(walkdir(parsed_args["input"]))
@@ -96,6 +150,7 @@ for (root, dirs, files) in ProgressBar(walkdir(parsed_args["input"]))
             for mutation in cluster_mutations
                 pos_regex = r"\w(\d+)\w"
                 position = parse(Int64, match(pos_regex, mutation).captures[1])
+                ss_range = 1:1
                 open(f_out_path, "a") do writer
                     println(writer, "-$(mutation)")
                     for protein in cluster_records
@@ -105,18 +160,27 @@ for (root, dirs, files) in ProgressBar(walkdir(parsed_args["input"]))
                         for tool in tools
                             push!(tool_results, cluster_results[id][tool][position])
                         end
+                        current_ss_range = get_secondary_struct_range(cluster_results[id]["dssp"], position)
+                        if length(current_ss_range) > length(ss_range)
+                            ss_range = current_ss_range
+                        end
                         println(writer, join(append!([id, protein_seq[position], cluster_results[id]["dssp"][position]], tool_results), '\t'))
                     end
 
-                    println(writer, "+$(mutation)")
+                    location_array = []
+                    for i in range(1, length(tools)+2)
+                        location_str = "$(' '^(position - first(ss_range)))*$(' '^(last(ss_range) - position))"
+                        push!(location_array, location_str)
+                    end
+                    println(writer, "+$(mutation)\t$(join(location_array, '\t'))")
                     for protein in cluster_records
                         id = identifier(protein)
                         protein_seq = sequence(String, protein)
                         tool_results = []
                         for tool in tools
-                            push!(tool_results, cluster_results[id][tool][position-5:position+5])
+                            push!(tool_results, cluster_results[id][tool][ss_range])
                         end
-                        println(writer, join(append!([id, protein_seq[position-5:position+5], cluster_results[id]["dssp"][position-5:position+5]], tool_results), '\t'))
+                        println(writer, join(append!([id, protein_seq[ss_range], cluster_results[id]["dssp"][ss_range]], tool_results), '\t'))
                     end
                 end
             end
