@@ -69,7 +69,7 @@ function extract_mutations(matrix, path)
         delete!(others, consensus)
         for i in others
             open(path, "a") do file
-                println(file, aa_str[mut_aa[consensus]], position, aa_str[mut_aa[i]])
+                println(file, aa_str[mut_aa[i]], position, aa_str[mut_aa[consensus]])
             end
         end
     end
