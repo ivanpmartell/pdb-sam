@@ -135,8 +135,16 @@ for (root, dirs, files) in ProgressBar(walkdir(parsed_args["input"]))
             end
             delete!(tool_set, "dssp")
             tools = collect(tool_set)
-
-            if !isempty(cluster_results) && !isempty(cluster_records) && !isempty(cluster_mutations)
+            try
+                for protein in cluster_records
+                    id = identifier(protein)
+                    cluster_results[id]["dssp"]
+                end
+            catch e
+                println("All necessary files were not found for $(dir)")
+                continue
+            end
+            if !isempty(cluster_results) && !isempty(cluster_mutations) && !isempty(tools)
                 header = "$(dir) - $(length(cluster_records)) proteins - $(length(cluster_mutations)) mutation(s)"
                 open(f_out_path, "w") do writer
                     println(writer, header)

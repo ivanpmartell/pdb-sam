@@ -22,7 +22,7 @@ wget http://www.clustal.org/omega/clustalo-1.2.4-Ubuntu-x86_64 && \
     chmod +x clustalo-1.2.4-Ubuntu-x86_64 && \
     mv clustalo-1.2.4-Ubuntu-x86_64 ncbi-blast-2.8.1+/bin/clustalo
 
-wget wget ftp://emboss.open-bio.org/pub/EMBOSS/emboss-latest.tar.gz && \
+wget ftp://emboss.open-bio.org/pub/EMBOSS/emboss-latest.tar.gz && \
     tar xvf emboss-latest.tar.gz && \
     rm -f emboss-latest.tar.gz && \
     cd EMBOSS-6.6.0 && \
@@ -30,6 +30,10 @@ wget wget ftp://emboss.open-bio.org/pub/EMBOSS/emboss-latest.tar.gz && \
     make && \
     make install && \
     cd ..
+
+wget http://dna.cs.miami.edu/SOV/SOV_refine.tar.gz && \
+    tar xvf SOV_refine.tar.gz && \
+    rm -f SOV_refine.tar.gz
 
 echo "Add the following folders to PATH inside the ~/.profile and ~/.bashrc file: cd-hit/  cd-hit/cd-hit-auxtools  cd-hit/psi-cd-hit  ncbi-blast-2.8.1+/bin julia-1.8.2/bin"
 echo "Replace pdb-sam with full path to repository folder: PATH=\"pdb-sam/julia-1.8.2/bin:pdb-sam/cd-hit:pdb-sam/cd-hit/cd-hit-auxtools:pdb-sam/cd-hit/psi-cd-hit:pdb-sam/ncbi-blast-2.8.1+/bin:/usr/local/emboss/bin:\$PATH\""

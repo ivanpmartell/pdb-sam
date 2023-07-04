@@ -78,28 +78,28 @@ end
 
 function calculate_metrics(bmk_dir)
     #Find .pred.fa files inside benchmark folder (assume .ref.fa with same name after -)
-    for (root, dirs, files) in ProgressBar(walkdir(parsed_args["input"]))
-        for dir in dirs
-            if startswith(dir, "global_benchmark")
-                bmk_dir = joinpath(root, dir)
-                ref_path = joinpath(bmk_dir, "dssp.ref.fa")
-                for pred_path in glob("*.pred.fa", bmk_dir)
-                    f_basename = first(split(basename(pred_path), '.'))
-                    #Run sov_refine to obtain metrics
-                    out_file = joinpath(bmk_dir, f_basename)
-                    if !isfile(out_file)
-                        write("$(out_file).metrics", read(`$(parsed_args["sov_refine"]) $(ref_path) $(pred_path)`))
-                    end
-                    #Clean SOV_refine input files
-                    if parsed_args["clean"]
-                        rm(pred_path)
-                    end
-                end
-                if parsed_args["clean"]
-                    rm(ref_path)
+    ref_path = joinpath(bmk_dir, "dssp.ref.fa")
+    for pred_path in glob("*.pred.fa", bmk_dir)
+        f_basename = first(split(basename(pred_path), '.'))
+        #Run sov_refine to obtain metrics
+        out_file = joinpath(bmk_dir, "$(f_basename).metrics")
+        if !isfile(out_file)
+            try
+                write(out_file, read(`$(parsed_args["sov_refine"]) $(ref_path) $(pred_path)`))
+            catch e
+                if isa(e, LoadError)
+                    println("Error getting metrics for $(basename(root))")
+                    continue
                 end
             end
         end
+        #Clean SOV_refine input files
+        if parsed_args["clean"]
+            rm(pred_path)
+        end
+    end
+    if parsed_args["clean"]
+        rm(ref_path)
     end
 end
 
@@ -119,7 +119,12 @@ for (root, dirs, files) in ProgressBar(walkdir(parsed_args["input"]))
             bmk_out_dir = joinpath(f_out_dir, "global_benchmark")
             tool_res = read_tool_results(cluster_dir)
             #Make files for input to sov_refine inside benchmark folder
-            create_benchmark_files(tool_res, bmk_out_dir)
+            try
+                create_benchmark_files(tool_res, bmk_out_dir)
+            catch e
+                println("Error on $(dir).")
+                continue
+            end
             ##Per tool and mutation global benchmark inside benchmark folder
             calculate_metrics(bmk_out_dir)
         end

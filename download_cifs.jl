@@ -36,11 +36,13 @@ function fix_dssp_formatting_errors(cif_path, dssp_out_path)
             lines_to_fix[num] = line
         end
     end
+    if isempty(lines_to_fix)
+        return nothing
+    end
     for (num, line) in lines_to_fix
         fix_list[num] = Dict{String, String}()
         quotes_regex = r"\"([^\"]*)\""
-        regex_match = match(quotes_regex, line)
-        if regex_match !== nothing
+        for regex_match in eachmatch(quotes_regex, line)
             captured_match = regex_match.captures[1]
             fixed_match = "\"$(captured_match)\""
             fix_list[num][captured_match] = fixed_match
@@ -48,10 +50,16 @@ function fix_dssp_formatting_errors(cif_path, dssp_out_path)
     end
     (tmppath, tmpio) = mktemp()
     for line in eachline(dssp_out_path)
-        for (line_num, fixes) in fix_list
-            if replace(lines_to_fix[line_num], " "=>"",  "\""=>"") == replace(line, " "=>"")
-                for (unfixed, fix) in fixes
-                    line = replace(line, unfixed=>fix)
+        if contains(line, '\'')
+            for (line_num, fixes) in fix_list
+                clean_line_to_fix = replace(lines_to_fix[line_num], " "=>"",  "\""=>"", "?"=>"")
+                clean_line = replace(line, " "=>"", "?"=>"")
+                if startswith(clean_line_to_fix, clean_line) || startswith(clean_line, clean_line_to_fix)
+                    for (unfixed, fix) in fixes
+                        line = replace(line, unfixed=>fix)
+                    end
+                    delete!(fix_list, line_num)
+                    break
                 end
             end
         end
@@ -88,7 +96,7 @@ if !parsed_args["nested"]
                 struc = read(downloaded_path, MMCIF)[chain]
                 current_seq = LongAminoAcidSeq(struc, standardselector, gaps=true)
                 push!(pdb_struct_seqs, current_seq)
-                if !isfile("$(file_out).cif")
+                if !isfile("$(file_name).cif")
                     writemmcif("$(file_name).cif", struc)
                 end
                 if parsed_args["write_seq"]

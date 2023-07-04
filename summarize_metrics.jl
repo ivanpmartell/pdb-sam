@@ -100,7 +100,7 @@ for (root, dirs, files) in ProgressBar(walkdir(parsed_args["input"]))
             f_out_path = joinpath(f_out_dir, "$(cluster_dir).bmk")
             cluster_tool_metrics = Dict{String, Dict{String, Vector{Any}}}()
             for f in glob("*$(parsed_args["extension"])", benchmark_dir)
-                f_name = basename(f)
+                f_name = first(splitext(basename(f)))
                 tool = first(split(f_name, '-'))
                 #Average all outputs into bmk file for cluster
                 read_metrics!(cluster_tool_metrics, tool, f)
