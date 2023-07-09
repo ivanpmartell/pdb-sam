@@ -156,25 +156,22 @@ for (root, dirs, files) in ProgressBar(walkdir(parsed_args["input"]))
                 continue
             end
             for mutation in cluster_mutations
-                pos_regex = r"\w(\d+)\w"
-                position = parse(Int64, match(pos_regex, mutation).captures[1])
+                pos_regex = r"(\w)(\d+)(\w)"
+                from_str, pos_str, to_str = match(pos_regex, mutation).captures
+                position = parse(Int64, pos_str)
+                from = only(from_str)
+                to = only(to_str)
+                mutation_aas = Set([from, to])
                 ss_range = 1:1
                 open(f_out_path, "a") do writer
-                    println(writer, "-$(mutation)")
+                    #TODO: ONLY ADD PROTEINS THAT APPEAR IN MUTATION
                     for protein in cluster_records
                         id = identifier(protein)
-                        protein_seq = sequence(String, protein)
-                        tool_results = []
-                        for tool in tools
-                            push!(tool_results, cluster_results[id][tool][position])
-                        end
                         current_ss_range = get_secondary_struct_range(cluster_results[id]["dssp"], position)
                         if length(current_ss_range) > length(ss_range)
                             ss_range = current_ss_range
                         end
-                        println(writer, join(append!([id, protein_seq[position], cluster_results[id]["dssp"][position]], tool_results), '\t'))
                     end
-
                     location_array = []
                     for i in range(1, length(tools)+2)
                         location_str = "$(' '^(position - first(ss_range)))*$(' '^(last(ss_range) - position))"
@@ -184,11 +181,26 @@ for (root, dirs, files) in ProgressBar(walkdir(parsed_args["input"]))
                     for protein in cluster_records
                         id = identifier(protein)
                         protein_seq = sequence(String, protein)
-                        tool_results = []
-                        for tool in tools
-                            push!(tool_results, cluster_results[id][tool][ss_range])
+                        if protein_seq[position] in mutation_aas
+                            tool_results = []
+                            for tool in tools
+                                push!(tool_results, cluster_results[id][tool][ss_range])
+                            end
+                            println(writer, join(append!([id, protein_seq[ss_range], cluster_results[id]["dssp"][ss_range]], tool_results), '\t'))
                         end
-                        println(writer, join(append!([id, protein_seq[ss_range], cluster_results[id]["dssp"][ss_range]], tool_results), '\t'))
+                    end
+
+                    println(writer, "-$(mutation)")
+                    for protein in cluster_records
+                        id = identifier(protein)
+                        protein_seq = sequence(String, protein)
+                        if protein_seq[position] in mutation_aas
+                            tool_results = []
+                            for tool in tools
+                                push!(tool_results, cluster_results[id][tool][position])
+                            end
+                            println(writer, join(append!([id, protein_seq[position], cluster_results[id]["dssp"][position]], tool_results), '\t'))
+                        end
                     end
                 end
             end

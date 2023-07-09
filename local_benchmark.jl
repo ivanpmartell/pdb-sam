@@ -4,6 +4,8 @@ using ProgressBars
 using BioSequences
 using DataFrames
 using FASTX
+using LogExpFunctions: xlogy
+using SparseArrays
 
 struct Mutation
     from::String
@@ -102,7 +104,7 @@ function read_summary(f_path)
 end
 
 function pm1(a, side)
-    return side == "back" ? a - 1 : a + 1
+    return side == "left" ? a - 1 : a + 1
 end
 
 function get_neighbor_ss(seq, pos, side)
@@ -117,6 +119,54 @@ function get_neighbor_ss(seq, pos, side)
         end
     end
     return current_AA
+end
+
+function info_matrix(p::AbstractMatrix)
+    w = p ./ sum(p; dims=1)
+    H = -xlogy.(w,1 .- w)
+    return transpose(H)
+end
+
+function findmin_view(x,b)
+    v = view(x,b)
+    return first(parentindices(v))[argmax(v)]
+end
+
+function add_to_ss_dict!(current_dict, mut_name, mut_desc, pos)
+    try
+        push!(current_dict[mut_name][mut_desc], pos)
+    catch e
+        try
+            current_dict[mut_name][mut_desc] = Set([pos])
+        catch err
+            current_dict[mut_name] = Dict(mut_desc => Set([pos]))
+        end
+    end
+end
+
+function extract_mutations!(ss_change_pos_dict, freqs, local_details, mut_name, mut_proteins)
+    matrix = info_matrix(freqs)
+    replace!(matrix, Inf=>0)
+    sparse_mat = sparse(matrix)
+    mut_pos, mut_ss, mut_val = findnz(sparse_mat)
+    all_positions = sort(collect(Set(mut_pos)))
+    for position in all_positions
+        indices = findall(==(position), mut_pos)
+        others = Set(indices)
+        consensus = findmin_view(mut_val, indices)
+        delete!(others, consensus)
+        if first(size(local_details)) < 3
+            add_to_ss_dict!(ss_change_pos_dict, mut_name, "mutation", position)
+            continue
+        end
+        for row in eachrow(local_details)
+            if row["dssp"][position] != ss_str[mut_ss[consensus]]
+                mut_desc = row["id"] in mut_proteins[mut_name] ? "mutation" : "consensus"
+                add_to_ss_dict!(ss_change_pos_dict, mut_name, mut_desc, position)
+            end
+        end
+        
+    end
 end
 
 function create_benchmark_files(summary, out_dir, cluster_num)
@@ -159,11 +209,25 @@ function create_benchmark_files(summary, out_dir, cluster_num)
         end
     end
     if parsed_args["mutations_file"]
-        #create tsv file with header
         mut_ss_out = joinpath(out_dir, "Cluster.mutss")
         if !isfile(mut_ss_out)
+            #Get ss_change_pos
+            ss_change_pos = Dict{String, Dict{String, Set{Int64}}}()
+            for (mut_name, mut) in summary.mutations
+                local_details = mut.details['+']
+                mut_seqs_len = length(first(local_details)["sequence"])
+                freqs = zeros(Int, (alphabet_len, mut_seqs_len))
+                for row in eachrow(local_details)
+                    ss = row["dssp"]
+                    for i in eachindex(ss)
+                        freqs[ss_idx[ss[i]], i] += 1
+                    end
+                end
+                extract_mutations!(ss_change_pos, freqs, local_details, mut_name, mut_proteins)
+            end
+            #Write results to file
             open(mut_ss_out, "w") do writer
-                println(writer, "cluster\ttool\tmutation\tAAMutation\tpos\tdesc\tss\tleft_ss\tright_ss\tpred_ss\tleft_pred_ss\tright_pred_ss")
+                println(writer, "cluster\tprotein\ttool\tmutation\tAAMutation\tpos\tdesc\tss\tleft_ss\tright_ss\tpred_ss\tleft_pred_ss\tright_pred_ss\thas_ss_change\thas_ss_change_left\thas_ss_change_right")
             end
             mut_ss_io = open(mut_ss_out, "a")
             for (mut_name, mut) in summary.mutations
@@ -173,12 +237,29 @@ function create_benchmark_files(summary, out_dir, cluster_num)
                     for row in eachrow(local_details)
                         mut_desc = row["id"] in mut_proteins[mut_name] ? "mutation" : "consensus"
                         sstruc = row["dssp"][mut.string_location]
-                        l_sstruc = get_neighbor_ss(row["dssp"], mut.string_location, "back")
+                        l_sstruc = get_neighbor_ss(row["dssp"], mut.string_location, "left")
                         r_sstruc = get_neighbor_ss(row["dssp"], mut.string_location, "")
                         pred_ss = row[tool][mut.string_location]
-                        l_pred_ss = get_neighbor_ss(row[tool], mut.string_location, "back")
+                        l_pred_ss = get_neighbor_ss(row[tool], mut.string_location, "left")
                         r_pred_ss = get_neighbor_ss(row[tool], mut.string_location, "")
-                        println(mut_ss_io, "$(cluster_num)\t$(tool)\t$(mut_name)\t$(aamut)\t$(mut.position)\t$(mut_desc)\t$(sstruc)\t$(l_sstruc)\t$(r_sstruc)\t$(pred_ss)\t$(l_pred_ss)\t$(r_pred_ss)")
+                        has_ss_change = "no"
+                        has_ss_change_left = "no"
+                        has_ss_change_right = "no"
+                        try
+                            pos_changes = ss_change_pos[mut_name][mut_desc]
+                            for pos in pos_changes
+                                if pos < mut.string_location
+                                    has_ss_change_left = "yes"
+                                elseif pos > mut.string_location
+                                    has_ss_change_right = "yes"
+                                else
+                                    has_ss_change = "yes"
+                                end
+                            end
+                        catch e
+                            msg = "No ss change"
+                        end
+                        println(mut_ss_io, "$(cluster_num)\t$(row["id"])\t$(tool)\t$(mut_name)\t$(aamut)\t$(mut.position)\t$(mut_desc)\t$(sstruc)\t$(l_sstruc)\t$(r_sstruc)\t$(pred_ss)\t$(l_pred_ss)\t$(r_pred_ss)\t$(has_ss_change)\t$(has_ss_change_left)\t$(has_ss_change_right)")
                     end
                 end
             end
@@ -211,6 +292,9 @@ parsed_args = parse_commandline()
 if isnothing(parsed_args["output"])
     parsed_args["output"] = parsed_args["input"]
 end
+ss_idx = Dict( 'B' => 1, 'C' => 2, 'E' => 3, 'G' => 4, 'H' => 5, 'I' => 6, 'S' => 7, 'T' => 8)
+ss_str = "BCEGHIST"
+alphabet_len = length(ss_idx)
 
 for (root, dirs, files) in ProgressBar(walkdir(parsed_args["input"]))
     for dir in dirs

@@ -2,7 +2,7 @@ using ArgParse
 using ProgressBars
 using FASTX
 using BioSequences
-using LogExpFunctions: xlogx
+using LogExpFunctions: xlogy
 using SparseArrays
 
 function parse_commandline()
@@ -47,9 +47,9 @@ function aa_index(aa::AminoAcid, aa_len, i)
     return reinterpret(UInt8, aa) + aa_len*(i-1) + 1
 end
 
-function seqlogo_matrix(p::AbstractMatrix)
+function info_matrix(p::AbstractMatrix)
     w = p ./ sum(p; dims=1)
-    H = -xlogx.(w)
+    H = -xlogy.(w,1 .- w)
     return transpose(H)
 end
 
@@ -69,7 +69,7 @@ function extract_mutations(matrix, path)
         delete!(others, consensus)
         for i in others
             open(path, "a") do file
-                println(file, aa_str[mut_aa[i]], position, aa_str[mut_aa[consensus]])
+                println(file, aa_str[mut_aa[consensus]], position, aa_str[mut_aa[i]])
             end
         end
     end
@@ -108,7 +108,8 @@ for (root, dirs, files) in ProgressBar(walkdir(parsed_args["input"]))
                         end
                     end
                 end
-                matrix = seqlogo_matrix(freqs)
+                matrix = info_matrix(freqs)
+                replace!(matrix, Inf=>0)
                 extract_mutations(matrix, f_out_path)
             end
         end
