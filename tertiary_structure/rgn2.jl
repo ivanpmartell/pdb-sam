@@ -27,26 +27,29 @@ end
 for (root, dirs, files) in walkdir(parsed_args["input"])
     for f in files
         if endswith(f, parsed_args["extension"])
-            f_path = joinpath(root,f)
-            f_noext = splitext(f)[1]
-            f_path_no_root_folder = lstrip(replace(f_path, Regex("^$(parsed_args["input"])")=>""), '/')
-            f_out_path = dirname(joinpath(parsed_args["output"], f_path_no_root_folder))
-            f_out_dir = joinpath(f_out_path, "rgn2/")
-            f_out = joinpath(f_out_dir, "$(f_noext).pdb")
-            if !isfile("$(f_out)")
-                println("Working on $(f_path)")
-                try
-                    cd(parsed_args["rgn2_dir"])
-                    rgn2 = joinpath(parsed_args["rgn2_dir"], "rgn2.py")
-                    run(`python $(rgn2) $(f_path)`)
-                    #Move output to our destination folder
-                    mkpath(f_out_dir)
-                    rgn2_output_dir = joinpath(parsed_args["rgn2_dir"], "output/refine_model1/")
-                    mv(joinpath(rgn2_output_dir, "$(f_noext)_prediction.pdb"), f_out)
-                    println("Finished: $(f_path)")
-                catch e
-                    println("Error on $(f_path)")
-                    continue
+            if startswith(last(splitdir(root)), "Cluster")
+                f_path = joinpath(root,f)
+                f_noext = splitext(f)[1]
+                f_path_no_root_folder = lstrip(replace(f_path, Regex("^$(parsed_args["input"])")=>""), '/')
+                f_out_path = dirname(joinpath(parsed_args["output"], f_path_no_root_folder))
+                f_out_dir = joinpath(f_out_path, "rgn2/")
+                f_out = joinpath(f_out_dir, "$(f_noext).pdb")
+                if !isfile("$(f_out)")
+                    println("Working on $(f_path)")
+                    try
+                        aminobert = joinpath(parsed_args["rgn2_dir"], "run_aminobert.py")
+                        run(Cmd(`python $(aminobert) $(f_path)`, dir=parsed_args["rgn2_dir"]))
+                        rgn2 = joinpath(parsed_args["rgn2_dir"], "run_rgn2.py")
+                        run(Cmd(`python $(rgn2) $(f_path)`, dir=parsed_args["rgn2_dir"]))
+                        #Move output to our destination folder
+                        mkpath(f_out_dir)
+                        rgn2_output_dir = joinpath(parsed_args["rgn2_dir"], "output/refine_model1/")
+                        mv(joinpath(rgn2_output_dir, "$(f_noext)_prediction.pdb"), f_out)
+                        println("Finished: $(f_path)")
+                    catch e
+                        println("Error on $(f_path)")
+                        continue
+                    end
                 end
             end
         end
