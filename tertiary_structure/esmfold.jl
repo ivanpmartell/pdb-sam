@@ -28,6 +28,7 @@ for (root, dirs, files) in walkdir(parsed_args["input"])
     for f in files
         if endswith(f, parsed_args["extension"])
             if startswith(last(splitdir(root)), "Cluster")
+                start_time = now()
                 f_path = joinpath(root,f)
                 f_noext = splitext(f)[1]
                 f_path_no_root_folder = lstrip(replace(f_path, Regex("^$(parsed_args["input"])")=>""), '/')
@@ -35,7 +36,7 @@ for (root, dirs, files) in walkdir(parsed_args["input"])
                 f_out_dir = joinpath(f_out_path, "esmfold/")
                 f_out = joinpath(f_out_dir, "$(f_noext).pdb")
                 if !isfile("$(f_out)")
-                    println("Working on $(f_path)")
+                    println("$(Dates.format(start_time, "yyyy-mm-dd HH:MM:SS")) Working on $(f_path)")
                     try
                         mkpath(f_out_dir)
                         run(`$(parsed_args["esmfold_exe"]) -i $(f_path) -o $(f_out_dir) --cpu-offload`)
@@ -45,11 +46,16 @@ for (root, dirs, files) in walkdir(parsed_args["input"])
                                 if startswith(file_out, f_noext)
                                     file_out_path = joinpath(root_out, file_out)
                                     mv(file_out_path, f_out)
+                                    break
                                 end
                             end
                         end
+                        end_time = now()
+                        time_taken = Dates.value(end_time - start_time) / 60000
+                        println("Runtime: $(round(time_taken, digits=3)) minutes")
                     catch e
-                        println("Error on $(f_path)")
+                        end_time = now()
+                        println("$(Dates.format(end_time, "yyyy-mm-dd HH:MM:SS")) Error on $(f_path)")
                         continue
                     end
                 end
