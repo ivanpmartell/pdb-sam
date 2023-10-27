@@ -42,7 +42,7 @@ for (root, dirs, files) in walkdir(parsed_args["input"])
                     println("$(Dates.format(start_time, "yyyy-mm-dd HH:MM:SS")) Working on $(f_path)")
                     try
                         mkpath(f_out_dir)
-                        run(`$(parsed_args["colabfold_exe"]) --templates --amber --use-gpu-relax $(f_path) $(parsed_args["temp_output"])`)
+                        run(`$(parsed_args["colabfold_exe"]) --templates --amber $(f_path) $(parsed_args["temp_output"])`)
                         #Rename file output
                         for (root_out, dirs_out, files_out) in walkdir(parsed_args["temp_output"])
                             for file_out in files_out

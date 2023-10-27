@@ -44,3 +44,4 @@ ncbi-blast-2.8.1+/
 *.spot1d
 *.csv
 *.ss2
+*.tar.gz
