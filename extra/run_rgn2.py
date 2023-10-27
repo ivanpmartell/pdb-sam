@@ -8,10 +8,10 @@ from pathlib import Path
 from ter2pdb import ter2pdb
 from Bio import SeqIO
 
-def get_args(name='default', input_file='in.fa'):
-    return input_file
+def get_args(name='default', input_file='in.fa', miniconda='/mnt/miniconda3/', rgn2='/mnt/rgn2/'):
+    return input_file, miniconda, rgn2
 
-in_file = get_args(*sys.argv)
+in_file, miniconda_location, rgn2_location = get_args(*sys.argv)
 record = SeqIO.read(in_file, "fasta")
 
 sys.path.append('alphafold')
@@ -32,12 +32,13 @@ OUTPUT_DIR = 'output'
 REFINE_DIR = 'output/refine_model1'
 SEQ_PATH = os.path.join(DATA_DIR, f'{seq_id}.fa')
 TER_PATH = os.path.join(RUN_DIR, '1', 'outputsTesting', f'{seq_id}.tertiary')
+MINICONDA_PATH = os.path.join(miniconda_location, "etc/profile.d/conda.sh")
 
 print("Starting protling...")
 
 try:
     config_file = os.path.join(RUN_DIR, 'configuration')
-    captured = subprocess.run(f'''source /mnt/miniconda3/etc/profile.d/conda.sh
+    captured = subprocess.run(f'''source {MINICONDA_PATH}
                   conda activate rgn2
                   python rgn/protling.py {config_file} -p -e weighted_testing -a -g 0''', executable='/bin/bash', shell=True, capture_output=True, check=True)
     print(captured)
@@ -56,8 +57,8 @@ ter2pdb.run_ca_to_allatom(seq_path=SEQ_PATH, ter_path=TER_PATH,
 try:
     out_suffix = '_prediction'
     path_parent = Path(SEQ_PATH).parent
-    af2_dir = '/mnt/rgn2/alphafold/'
-    captured = subprocess.run(f'''source /mnt/miniconda3/etc/profile.d/conda.sh
+    af2_dir = os.path.join(rgn2_location, "alphafold/")
+    captured = subprocess.run(f'''source {MINICONDA_PATH}
                     conda activate af2
                     TF_FORCE_UNIFIED_MEMORY=1 XLA_PYTHON_CLIENT_MEM_FRACTION=2.0 python ter2pdb/run_af2rank.py refine_model1 --target_list {seq_id} --af2_dir {af2_dir} --out_suffix {out_suffix} --seq_dir {path_parent} --pdb_dir {OUTPUT_DIR} --output_dir {OUTPUT_DIR} --deterministic --seq_replacement - --mask_sidechains_add_cb --model_num 1 --recycles {recycles}''', executable='/bin/bash', shell=True, capture_output=True)
     print(captured)

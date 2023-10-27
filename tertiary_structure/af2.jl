@@ -50,7 +50,8 @@ for (root, dirs, files) in walkdir(parsed_args["input"])
                         run(`python $(af2) --fasta_paths=$(f_path) $(cpu_only) --max_template_date=2020-05-14`)
                         #Move output to our destination folder
                         mkpath(f_out_dir)
-                        af2_output_dir = joinpath("/mnt/output", "alphafold/")
+                        af2_output_dir = joinpath("/tmp/", "af_output/")
+                        mkpath(af2_output_dir)
                         mv(joinpath(af2_output_dir, "$(f_noext)/ranked_0.pdb"), f_out)
                         end_time = now()
                         time_taken = Dates.value(end_time - start_time) / 60000
