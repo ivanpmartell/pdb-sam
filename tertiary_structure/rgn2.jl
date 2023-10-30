@@ -30,7 +30,7 @@ for (root, dirs, files) in walkdir(parsed_args["input"])
         if endswith(f, parsed_args["extension"])
             if startswith(last(splitdir(root)), "Cluster")
                 start_time = now()
-                f_path = joinpath(root,f)
+                f_path = abspath(joinpath(root,f))
                 f_noext = splitext(f)[1]
                 f_path_no_root_folder = lstrip(replace(f_path, Regex("^$(parsed_args["input"])")=>""), '/')
                 f_out_path = dirname(joinpath(parsed_args["output"], f_path_no_root_folder))
