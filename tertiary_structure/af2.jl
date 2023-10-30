@@ -19,6 +19,9 @@ function parse_commandline()
         "--use_gpu", "-g"
             help = "Use Nvidia GPU. If not selected, use CPU only"
             action = :store_true
+        "--temp_output", "-t"
+            help = "Temporary output directory. Usually somewhere outside your output directory"
+            required = true
 
     end
     return parse_args(s)
@@ -32,6 +35,7 @@ cpu_only = ""
 if !parsed_args["use_gpu"]
     cpu_only = "--use_gpu=False"
 end
+mkpath(parsed_args["temp_output"])
 for (root, dirs, files) in walkdir(parsed_args["input"])
     for f in files
         if endswith(f, parsed_args["extension"])
@@ -50,15 +54,14 @@ for (root, dirs, files) in walkdir(parsed_args["input"])
                         run(`python $(af2) --fasta_paths=$(f_path) $(cpu_only) --max_template_date=2020-05-14`)
                         #Move output to our destination folder
                         mkpath(f_out_dir)
-                        af2_output_dir = joinpath("/tmp/", "af_output/")
-                        mkpath(af2_output_dir)
-                        mv(joinpath(af2_output_dir, "$(f_noext)/ranked_0.pdb"), f_out)
+                        mv(joinpath(parsed_args["temp_output"], "$(f_noext)/ranked_0.pdb"), f_out)
                         end_time = now()
                         time_taken = Dates.value(end_time - start_time) / 60000
                         println("Runtime: $(round(time_taken, digits=3)) minutes")
                     catch e
                         end_time = now()
                         println("$(Dates.format(end_time, "yyyy-mm-dd HH:MM:SS")) Error on $(f_path)")
+                        println(e)
                         continue
                     end
                 end

@@ -17,6 +17,7 @@ function parse_commandline()
             help = "Output directory. Ignore to write files in input directory"
         "--temp_output", "-t"
             help = "Temporary output directory. Usually somewhere outside your output directory"
+            required = true
 
     end
     return parse_args(s)
