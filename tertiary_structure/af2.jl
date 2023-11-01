@@ -31,7 +31,7 @@ parsed_args = parse_commandline()
 if isnothing(parsed_args["output"])
     parsed_args["output"] = parsed_args["input"]
 end
-cpu_only = ""
+cpu_only = "--use_gpu=True"
 if !parsed_args["use_gpu"]
     cpu_only = "--use_gpu=False"
 end
