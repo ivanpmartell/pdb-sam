@@ -1,6 +1,5 @@
-#Use rgn2 conda evn
 using ArgParse
-using Dates
+include("../common.jl")
 
 function parse_commandline()
     s = ArgParseSettings()
