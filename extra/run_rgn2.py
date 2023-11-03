@@ -8,10 +8,11 @@ from pathlib import Path
 from ter2pdb import ter2pdb
 from Bio import SeqIO
 
-def get_args(name='default', input_file='in.fa', miniconda='/mnt/miniconda3/', rgn2='/mnt/rgn2/'):
-    return input_file, miniconda, rgn2
+def get_args(name='default', input_file='in.fa', miniconda='/mnt/miniconda3/'):
+    return input_file, miniconda
 
-in_file, miniconda_location, rgn2_location = get_args(*sys.argv)
+rgn2_location = os.getcwd()
+in_file, miniconda_location = get_args(*sys.argv)
 record = SeqIO.read(in_file, "fasta")
 
 sys.path.append('alphafold')

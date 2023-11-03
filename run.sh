@@ -45,5 +45,5 @@ julia summarize_metrics.jl -i pristine_mmcifs/ -t global
 #Tertiary structure prediction on pristine mmcifs
 julia tertiary_structure/af2.jl -i pristine_mmcifs/ -e .fa -a /storage/alphafold/ -g
 julia tertiary_structure/esmfold.jl -i pristine_mmcifs/ -e .fa -s esm-fold
-julia tertiary_structure/rgn2.jl -i pristine_mmcifs/ -e .fa -r /storage/rgn2/
-julia tertiary_structure/colabfold.jl -i pristine_mmcifs/ -e .fa -c colabfold_batch -t /tmp/colabfold
+julia tertiary_structure/rgn2.jl -i pristine_mmcifs/ -e .fa -r /storage/rgn2/ -c /storage/conda/
+julia tertiary_structure/colabfold.jl -i pristine_mmcifs/ -e .fa -c colabfold_batch -t /storage/colabfold_output
