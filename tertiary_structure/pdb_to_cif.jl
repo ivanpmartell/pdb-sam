@@ -27,4 +27,4 @@ function commands(f_path, f_noext, f_out)
     run(`maxit -input $(f_path) -output $(f_out) -o 1`)
 end
 
-work_on_files(parsed_args["input"], parsed_args["output"], input_conditions, "", "mmcif", commands)
+work_on_files(parsed_args["input"], parsed_args["output"], input_conditions, "", "pdb.cif", commands)

@@ -8,7 +8,7 @@ function parse_commandline()
             help = "Input directory"
             required = true
         "--extension", "-e"
-            help = "Extension for input files. Usually '.mmcif'"
+            help = "Extension for input files. Usually '.pdb.cif'"
             required = true
         "--output", "-o"
             help = "Output directory. Ignore to write files in input directory"
@@ -27,4 +27,4 @@ function commands(f_path, f_noext, f_out)
     run(`mkdssp $(f_path) $(f_out)`)
 end
 
-work_on_files(parsed_args["input"], parsed_args["output"], input_conditions, "", "cif", commands)
+work_on_files(parsed_args["input"], parsed_args["output"], input_conditions, "", "pdb.mmcif", commands)
