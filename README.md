@@ -33,3 +33,22 @@ Run the following:
 11. ```clean_cifs.jl```
 12. ```cif_statistics.jl```
 13. ```visualize_cifs.jl```
+
+### External Tools
+
+- DSSP
+- MAXIT
+
+#### Benchmarked
+
+- SSPro8
+- RaptorX PropertyPredict
+- SPOT1D
+- SPOT1D-Single
+- SPOT1D-LM
+
+- Alphafold 2
+- ESMFold
+- ColabFold
+- RGN2
+

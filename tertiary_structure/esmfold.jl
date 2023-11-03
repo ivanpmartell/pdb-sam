@@ -1,6 +1,6 @@
 #Use esmfold conda env
 using ArgParse
-using Dates
+include("../common.jl")
 
 function parse_commandline()
     s = ArgParseSettings()
@@ -22,45 +22,23 @@ function parse_commandline()
 end
 
 parsed_args = parse_commandline()
-if isnothing(parsed_args["output"])
-    parsed_args["output"] = parsed_args["input"]
+
+function input_conditions(in_file, in_path)
+    return endswith(in_file, parsed_args["extension"]) && startswith(last(splitdir(in_path)), "Cluster")
 end
-for (root, dirs, files) in walkdir(parsed_args["input"])
-    for f in files
-        if endswith(f, parsed_args["extension"])
-            if startswith(last(splitdir(root)), "Cluster")
-                start_time = now()
-                f_path = joinpath(root,f)
-                f_noext = splitext(f)[1]
-                f_path_no_root_folder = lstrip(replace(f_path, Regex("^$(parsed_args["input"])")=>""), '/')
-                f_out_path = dirname(joinpath(parsed_args["output"], f_path_no_root_folder))
-                f_out_dir = joinpath(f_out_path, "esmfold/")
-                f_out = joinpath(f_out_dir, "$(f_noext).pdb")
-                if !isfile("$(f_out)")
-                    println("$(Dates.format(start_time, "yyyy-mm-dd HH:MM:SS")) Working on $(f_path)")
-                    try
-                        mkpath(f_out_dir)
-                        run(`$(parsed_args["esmfold_exe"]) -i $(f_path) -o $(f_out_dir) --cpu-offload`)
-                        #Rename file output
-                        for (root_out, dirs_out, files_out) in walkdir(f_out_dir)
-                            for file_out in files_out
-                                if startswith(file_out, f_noext)
-                                    file_out_path = joinpath(root_out, file_out)
-                                    mv(file_out_path, f_out)
-                                    break
-                                end
-                            end
-                        end
-                        end_time = now()
-                        time_taken = Dates.value(end_time - start_time) / 60000
-                        println("Runtime: $(round(time_taken, digits=3)) minutes")
-                    catch e
-                        end_time = now()
-                        println("$(Dates.format(end_time, "yyyy-mm-dd HH:MM:SS")) Error on $(f_path)")
-                        continue
-                    end
-                end
+
+function commands(f_path, f_noext, f_out)
+    f_out_dir = dirname(f_out)
+    run(`$(parsed_args["esmfold_exe"]) -i $(f_path) -o $(f_out_dir) --cpu-offload`)
+    for (root_out, dirs_out, files_out) in walkdir(f_out_dir)
+        for file_out in files_out
+            if startswith(file_out, f_noext)
+                file_out_path = joinpath(root_out, file_out)
+                mv(file_out_path, f_out)
+                break
             end
         end
     end
 end
+
+work_on_files(parsed_args["input"], parsed_args["output"], input_conditions, "esmfold/", "pdb", commands)

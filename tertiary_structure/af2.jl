@@ -1,6 +1,6 @@
 #Use af2 conda env
 using ArgParse
-using Dates
+include("../common.jl")
 
 function parse_commandline()
     s = ArgParseSettings()
@@ -28,44 +28,20 @@ function parse_commandline()
 end
 
 parsed_args = parse_commandline()
-if isnothing(parsed_args["output"])
-    parsed_args["output"] = parsed_args["input"]
-end
 cpu_only = "--use_gpu=True"
 if !parsed_args["use_gpu"]
     cpu_only = "--use_gpu=False"
 end
-mkpath(parsed_args["temp_output"])
-for (root, dirs, files) in walkdir(parsed_args["input"])
-    for f in files
-        if endswith(f, parsed_args["extension"])
-            if startswith(last(splitdir(root)), "Cluster")
-                start_time = now()
-                f_path = joinpath(root,f)
-                f_noext = splitext(f)[1]
-                f_path_no_root_folder = lstrip(replace(f_path, Regex("^$(parsed_args["input"])")=>""), '/')
-                f_out_path = dirname(joinpath(parsed_args["output"], f_path_no_root_folder))
-                f_out_dir = joinpath(f_out_path, "af2/")
-                f_out = joinpath(f_out_dir, "$(f_noext).pdb")
-                if !isfile("$(f_out)")
-                    println("$(Dates.format(start_time, "yyyy-mm-dd HH:MM:SS")) Working on $(f_path)")
-                    try
-                        af2 = joinpath(parsed_args["af2_dir"], "docker/run_docker.py")
-                        run(`python $(af2) --fasta_paths=$(f_path) $(cpu_only) --max_template_date=2020-05-14`)
-                        #Move output to our destination folder
-                        mkpath(f_out_dir)
-                        mv(joinpath(parsed_args["temp_output"], "$(f_noext)/ranked_0.pdb"), f_out)
-                        end_time = now()
-                        time_taken = Dates.value(end_time - start_time) / 60000
-                        println("Runtime: $(round(time_taken, digits=3)) minutes")
-                    catch e
-                        end_time = now()
-                        println("$(Dates.format(end_time, "yyyy-mm-dd HH:MM:SS")) Error on $(f_path)")
-                        println(e)
-                        continue
-                    end
-                end
-            end
-        end
-    end
+
+function input_conditions(in_file, in_path)
+    return endswith(in_file, parsed_args["extension"]) && startswith(last(splitdir(in_path)), "Cluster")
 end
+
+function commands(f_path, f_noext, f_out)
+    mkpath(parsed_args["temp_output"])
+    af2 = joinpath(parsed_args["af2_dir"], "docker/run_docker.py")
+    run(`python $(af2) --fasta_paths=$(f_path) $(cpu_only) --max_template_date=2020-05-14`)
+    mv(joinpath(parsed_args["temp_output"], "$(f_noext)/ranked_0.pdb"), f_out)
+end
+
+work_on_files(parsed_args["input"], parsed_args["output"], input_conditions, "af2/", "pdb", commands)
