@@ -145,10 +145,12 @@ function convert_dssp(f_noext, f_path, f_out_path, seq_file, retry)
         if isempty(assign_df)
             throw(ErrorException("Dataframe parsing error"))
         end
-        reader = FASTA.Reader(open(seq_file))
-        seq_rec = first(reader); close(reader);
-        if length(sequence(seq_rec)) !== length(assign_seq)
-            throw(ErrorException("Sequence lengths mismatch"))
+        if isfile(seq_file)
+            reader = FASTA.Reader(open(seq_file))
+            seq_rec = first(reader); close(reader);
+            if length(sequence(seq_rec)) !== length(assign_seq)
+                throw(ErrorException("Sequence lengths mismatch"))
+            end
         end
         assignment = normalize_dssp_ouput(assign_df, length(assign_seq))
         #Write assignment to .ssfa
@@ -188,7 +190,8 @@ function input_conditions(in_file, in_path)
 end
 
 function commands(f_path, f_noext, f_out)
-    sequence_file = joinpath(root, "$(f_noext).fa")
+    f_out_dir = dirname(f_out)
+    sequence_file = joinpath(f_out_dir, "$(f_noext).fa")
     convert_dssp(f_noext, f_path, f_out, sequence_file, parsed_args["fix"])
 end
 
