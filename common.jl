@@ -6,10 +6,13 @@ function work_on_files(input, output, in_conditions, out_dir, out_ext, run_cmds)
     end
     abs_input = abspath(input)
     abs_output = abspath(output)
+    counter = 0
+    error_counter = 0
     for (root, dirs, files) in walkdir(abs_input)
         for f in files
             if in_conditions(f, root)
                 start_time = now()
+                counter += 1
                 f_path = joinpath(root, f)
                 f_noext = first(splitext(f))
                 f_path_no_root_folder = lstrip(replace(f_path, Regex("^$(abs_input)")=>""), '/')
@@ -29,12 +32,14 @@ function work_on_files(input, output, in_conditions, out_dir, out_ext, run_cmds)
                         end_time = now()
                         println("$(Dates.format(end_time, "yyyy-mm-dd HH:MM:SS")) Error on $(f_path)")
                         println(e)
+                        error_counter += 1
                         continue
                     end
                 end
             end
         end
     end
+    println("$(error_counter) errors found in $(counter) files")
 end
 
 function look_at_files(input, in_conditions, run_cmds)

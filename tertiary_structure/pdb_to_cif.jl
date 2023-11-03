@@ -25,7 +25,7 @@ function input_conditions(in_file, in_path)
 end
 
 function commands(f_path, f_noext, f_out)
-    run(`mkdssp $(f_path) $(f_out)`)
+    run(`maxit $(f_path) $(f_out)`)
 end
 
-work_on_files(parsed_args["input"], parsed_args["output"], input_conditions, "", "cif", commands)
+work_on_files(parsed_args["input"], parsed_args["output"], input_conditions, "", "mmcif", commands)
