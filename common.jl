@@ -36,3 +36,33 @@ function work_on_files(input, output, in_conditions, out_dir, out_ext, run_cmds)
         end
     end
 end
+
+function look_at_files(input, in_conditions, run_cmds)
+    start_time = now()
+    abs_input = abspath(input)
+    println("$(Dates.format(start_time, "yyyy-mm-dd HH:MM:SS")) Working on $(abs_input)")
+    counter = 0
+    error_counter = 0
+    for (root, dirs, files) in walkdir(abs_input)
+        for f in files
+            if in_conditions(f, root)
+                f_path = joinpath(root, f)
+                counter += 1
+                try
+                    run_cmds(f_path)
+                catch e
+                    error_time = now()
+                    println("$(Dates.format(error_time, "yyyy-mm-dd HH:MM:SS")) Error on $(f_path)")
+                    println(e)
+                    error_counter += 1
+                    continue
+                end
+            end
+        end
+    end
+    end_time = now()
+    time_taken = Dates.value(end_time - start_time) / 60000
+    println("Runtime: $(round(time_taken, digits=3)) minutes")
+    println("$(Dates.format(end_time, "yyyy-mm-dd HH:MM:SS")) Finished $(abs_input)")
+    println("$(error_counter) errors found in $(counter) files")
+end
