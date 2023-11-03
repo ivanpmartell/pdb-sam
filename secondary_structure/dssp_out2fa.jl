@@ -5,6 +5,7 @@ using DataFrames
 using FASTX
 using BioSequences
 using BioStructures
+include("../common.jl")
 
 function parse_commandline()
     s = ArgParseSettings()
@@ -178,27 +179,17 @@ function convert_dssp(f_noext, f_path, f_out_path, seq_file, retry)
 end
 
 parsed_args = parse_commandline()
-if isnothing(parsed_args["output"])
-    parsed_args["output"] = parsed_args["input"]
-end
 if isnothing(parsed_args["extension"])
     parsed_args["extension"] = ".mmcif"
 end
 
-for (root, dirs, files) in walkdir(parsed_args["input"])
-    for f in files
-        if endswith(f, parsed_args["extension"])
-            f_path = joinpath(root,f)
-            f_noext = splitext(f)[1]
-            f_path_no_root_folder = lstrip(replace(f_path, Regex("^$(parsed_args["input"])")=>""), '/')
-            f_out_dir = dirname(joinpath(parsed_args["output"], f_path_no_root_folder))
-            f_out_path = joinpath(f_out_dir, "$(f_noext).ssfa")
-            if !isfile(f_out_path)
-                println("Working on $(f_path)")
-                sequence_file = joinpath(root, "$(f_noext).fa")
-                mkpath(f_out_dir)
-                convert_dssp(f_noext, f_path, f_out_path, sequence_file, parsed_args["fix"])
-            end
-        end
-    end
+function input_conditions(in_file, in_path)
+    return endswith(in_file, parsed_args["extension"])
 end
+
+function commands(f_path, f_noext, f_out)
+    sequence_file = joinpath(root, "$(f_noext).fa")
+    convert_dssp(f_noext, f_path, f_out, sequence_file, parsed_args["fix"])
+end
+
+work_on_files(parsed_args["input"], parsed_args["output"], input_conditions, "", "ssfa", commands)

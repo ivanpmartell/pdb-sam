@@ -14,7 +14,7 @@ function work_on_files(input, output, in_conditions, out_dir, out_ext, run_cmds)
                 start_time = now()
                 counter += 1
                 f_path = joinpath(root, f)
-                f_noext = first(splitext(f))
+                f_noext = first(split(f, "."))
                 f_path_no_root_folder = lstrip(replace(f_path, Regex("^$(abs_input)")=>""), '/')
                 f_out_path = dirname(joinpath(abs_output, f_path_no_root_folder))
                 f_out_dir = joinpath(f_out_path, out_dir)
