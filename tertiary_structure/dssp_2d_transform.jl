@@ -8,7 +8,7 @@ function parse_commandline()
             help = "Input directory"
             required = true
         "--extension", "-e"
-            help = "Extension for input files. Usually '.pdb'"
+            help = "Extension for input files. Usually '.mmcif'"
             required = true
         "--output", "-o"
             help = "Output directory. Ignore to write files in input directory"
