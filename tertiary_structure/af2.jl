@@ -40,7 +40,7 @@ end
 function commands(f_path, f_noext, f_out)
     mkpath(parsed_args["temp_output"])
     af2 = joinpath(parsed_args["af2_dir"], "docker/run_docker.py")
-    run(`python $(af2) --fasta_paths=$(f_path) $(cpu_only) --max_template_date=2020-05-14`)
+    run(`python $(af2) --fasta_paths=$(f_path) $(cpu_only) --max_template_date=2020-05-14 --docker_user=0`)
     mv(joinpath(parsed_args["temp_output"], "$(f_noext)/ranked_0.pdb"), f_out)
 end
 
