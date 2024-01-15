@@ -59,8 +59,12 @@ end
 
 function commands(f_path, f_noext, f_out)
     mkpath(parsed_args["temp_output"])
-    run(Cmd(create_command("run_alphafold.sh", ["-d $(parsed_args["data_dir"])", "-o $(parsed_args["output"])", "-p monomer_ptm", "-i $(f_path)", "-m model_1,model_2,model_3,model_4,model_5", "-t 2020-05-14", gpu_usage, parafold_args]), dir=parsed_args["parafold"]))
-    cp(joinpath(parsed_args["temp_output"], "$(f_noext)/ranked_0.pdb"), f_out)
+    args = ["-d $(parsed_args["data_dir"])", "-o $(parsed_args["output"])", "-p monomer_ptm", "-i $(f_path)", "-m model_1,model_2,model_3,model_4,model_5", "-t 2020-05-14", gpu_usage, parafold_args]
+    filtered_args = filter(!isempty, args)
+    run(Cmd(`./run_alphafold.sh $(join(args," "))`, dir=parsed_args["parafold_dir"]))
+    if !parsed_args["msa_only"]
+        cp(joinpath(parsed_args["temp_output"], "$(f_noext)/ranked_0.pdb"), f_out)
+    end
 end
 
 work_on_files(parsed_args["input"], parsed_args["output"], input_conditions, "af2/", "pdb", commands, "min")
