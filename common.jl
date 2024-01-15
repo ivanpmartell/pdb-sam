@@ -34,6 +34,9 @@ function work_on_files(input, output, in_conditions, out_dir, out_ext, run_cmds,
                         print_runtime(iter_start_time, runtime_unit, "Finished on $(f_path)")
                     catch e
                         print_runtime(iter_start_time, runtime_unit, "ERROR: Read more at $(error_path)")
+                        open(error_path, "w") do error_file
+                            println(error_file, e)
+                         end
                         error_counter += 1
                         continue
                     end
