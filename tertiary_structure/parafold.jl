@@ -49,7 +49,7 @@ parafold_args = " "
 if parsed_args["msa_only"] && parsed_args["predict_only"]
     throw(ArgumentError("Choose MSA features only or Predict only. To do both, ignore both flags."))
 elseif parsed_args["msa_only"]
-    parafold_args = "-P"
+    parafold_args = "-f"
 elseif parsed_args["predict_only"]
     parafold_args = "-s"
 end
@@ -60,9 +60,17 @@ end
 
 function commands(f_path, f_noext, f_out)
     mkpath(parsed_args["temp_output"])
-    #TODO: Add gpu_usage and parafold_args instead of the hardcoded ones here
-    run(Cmd(`./run_alphafold.sh -d $(parsed_args["data_dir"]) -o $(parsed_args["output"]) -p monomer_ptm -i $(f_path) -m model_1,model_2,model_3,model_4,model_5 -t 2020-05-14 -g -G -s`, dir=parsed_args["parafold_dir"]))
-    if !parsed_args["msa_only"]
+    features_file = joinpath(parsed_args["temp_output"], "$(f_noext)/features.pkl")
+    if isfile("$(f_out).pkl")
+        mkpath(joinpath(parsed_args["temp_output"], f_noext))
+        mv("$(f_out).pkl", features_file)
+        run(Cmd(`./run_alphafold.sh -d $(parsed_args["data_dir"]) -o $(parsed_args["temp_output"]) -p monomer_ptm -i $(f_path) -m model_1,model_2,model_3,model_4,model_5 -t 2020-05-14 -g -G -s`, dir=parsed_args["parafold_dir"]))
+    end
+    #TODO: Add gpu_usage and parafold_args instead of the hardcoded ones here ALSO fix the msa_only predict_only mess
+    run(Cmd(`./run_alphafold.sh -d $(parsed_args["data_dir"]) -o $(parsed_args["temp_output"]) -p monomer_ptm -i $(f_path) -m model_1,model_2,model_3,model_4,model_5 -t 2020-05-14 -g -G -P -f`, dir=parsed_args["parafold_dir"]))
+    if parsed_args["msa_only"]
+        cp(features_file, "$(f_out).pkl")
+    else
         cp(joinpath(parsed_args["temp_output"], "$(f_noext)/ranked_0.pdb"), f_out)
     end
 end
