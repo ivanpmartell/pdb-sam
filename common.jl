@@ -20,15 +20,20 @@ function work_on_files(input, output, in_conditions, out_dir, out_ext, run_cmds,
                 f_out_path = dirname(joinpath(abs_output, f_path_no_root_folder))
                 f_out_dir = joinpath(f_out_path, out_dir)
                 f_out = joinpath(f_out_dir, "$(f_noext).$(out_ext)")
-                if !isfile("$(f_out)")
+                error_path = "$(f_out).err"
+                if !isfile(f_out)
+                    if isfile(error_path)
+                        print_runtime(iter_start_time, runtime_unit, "Skipping $(f_path)")
+                        println("INFO: Delete error (.err) file to process the file at")
+                        println(error_path)
+                    end
                     print_log(start_time, "Working on $(f_path)")
                     try
                         mkpath(f_out_dir)
                         run_cmds(f_path, f_noext, f_out)
                         print_runtime(iter_start_time, runtime_unit, "Finished on $(f_path)")
                     catch e
-                        print_runtime(iter_start_time, runtime_unit, "Error on $(f_path)")
-                        println(e)
+                        print_runtime(iter_start_time, runtime_unit, "ERROR: Read more at $(error_path)")
                         error_counter += 1
                         continue
                     end
@@ -80,14 +85,14 @@ function print_runtime(start_time, unit, msg)
         time_taken = Dates.value(end_time - start_time) / 3600000
         println("Runtime: $(round(time_taken, digits=3)) hours")
     end
-    print_log(iter_end_time, msg)
+    print_log(end_time, msg)
 end
 
 function print_log(time, msg)
     println("$(Dates.format(time, "yyyy-mm-dd HH:MM:SS")) $(msg)")
 end
 
-function create_command(executable::AbstractString, args::Vector{AbstractString})
+function create_command(executable::String, args::Vector{String})
     args = filter(!isempty, args)
     return `$(executable) $(join(args," "))`
 end
