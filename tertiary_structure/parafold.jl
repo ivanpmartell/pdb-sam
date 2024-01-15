@@ -13,7 +13,7 @@ function parse_commandline()
             required = true
         "--data_dir", "-d"
             help = "Directory containing alphafold databases"
-            required = true #TODO: make optional by create_command separate by space and looking at last to see if empty
+            required = true #TODO: make optional
         "--parafold_dir", "-a"
             help = "Directory containing ParallelFold repository"
             required = true
@@ -39,12 +39,13 @@ function parse_commandline()
     return parse_args(s)
 end
 
+#TODO: FIX args
 parsed_args = parse_commandline()
-gpu_usage = ""
+gpu_usage = " "
 if parsed_args["use_gpu"]
     gpu_usage = "-gG"
 end
-parafold_args = ""
+parafold_args = " "
 if parsed_args["msa_only"] && parsed_args["predict_only"]
     throw(ArgumentError("Choose MSA features only or Predict only. To do both, ignore both flags."))
 elseif parsed_args["msa_only"]
@@ -59,9 +60,8 @@ end
 
 function commands(f_path, f_noext, f_out)
     mkpath(parsed_args["temp_output"])
-    args = ["-d $(parsed_args["data_dir"])", "-o $(parsed_args["output"])", "-p monomer_ptm", "-i $(f_path)", "-m model_1,model_2,model_3,model_4,model_5", "-t 2020-05-14", gpu_usage, parafold_args]
-    filtered_args = filter(!isempty, args)
-    run(Cmd(`./run_alphafold.sh $(join(args," "))`, dir=parsed_args["parafold_dir"]))
+    #TODO: Add gpu_usage and parafold_args instead of the hardcoded ones here
+    run(Cmd(`./run_alphafold.sh -d $(parsed_args["data_dir"]) -o $(parsed_args["output"]) -p monomer_ptm -i $(f_path) -m model_1,model_2,model_3,model_4,model_5 -t 2020-05-14 -g -G -s`, dir=parsed_args["parafold_dir"]))
     if !parsed_args["msa_only"]
         cp(joinpath(parsed_args["temp_output"], "$(f_noext)/ranked_0.pdb"), f_out)
     end

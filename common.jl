@@ -94,8 +94,3 @@ end
 function print_log(time, msg)
     println("$(Dates.format(time, "yyyy-mm-dd HH:MM:SS")) $(msg)")
 end
-
-function create_command(executable::String, args::Vector{String})
-    args = filter(!isempty, args)
-    return `$(executable) $(join(args," "))`
-end
