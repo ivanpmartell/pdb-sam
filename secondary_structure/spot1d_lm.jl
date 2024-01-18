@@ -3,6 +3,9 @@ using ArgParse
 function parse_commandline()
     s = ArgParseSettings()
     @add_arg_table! s begin
+        "--skip_error", "-k"
+            help = "Skip files that have previously failed"
+            action = :store_true
         "--input", "-i"
             help = "Input directory"
             required = true
@@ -14,6 +17,18 @@ function parse_commandline()
             required = true
         "--output", "-o"
             help = "Output directory. Ignore to write files in input directory"
+        "--gpu_device_esm", "-ge"
+            help = "GPU device for ESM prediction"
+            arg_type = Int
+            default = -1
+        "--gpu_device_pt", "-gp"
+            help = "GPU device for ProtTrans prediction"
+            arg_type = Int
+            default = -1
+        "--gpu_device_lm", "-g"
+            help = "GPU device for SPOT1D LM prediction"
+            arg_type = Int
+            default = -1
 
     end
     return parse_args(s)
@@ -29,35 +44,28 @@ function create_filelist(current_file_path, filelist_path)
     end
 end
 
-parsed_args = parse_commandline()
-if isnothing(parsed_args["output"])
-    parsed_args["output"] = parsed_args["input"]
-end
-for (root, dirs, files) in walkdir(parsed_args["input"])
-    for f in files
-        if endswith(f, parsed_args["extension"])
-            f_path = joinpath(root,f)
-            f_noext = splitext(f)[1]
-            spot1d_lm_output_dir = joinpath(parsed_args["spot1d_lm_dir"], "results/")
-            f_path_no_root_folder = lstrip(replace(f_path, Regex("^$(parsed_args["input"])")=>""), '/')
-            f_out_path = dirname(joinpath(parsed_args["output"], f_path_no_root_folder))
-            f_out_dir = joinpath(f_out_path, "spot1d_lm/")
-            f_out = joinpath(f_out_dir, "$(f_noext).csv")
-            if !isfile("$(f_out)")
-                println("Working on $(f_path)")
-                try
-                    filelist_path = "tmp_s1dlm_filelist.txt"
-                    abs_filelist_path = joinpath(pwd(), filelist_path)
-                    create_filelist(f_path, filelist_path)
-                    run(Cmd(`./run_SPOT-1D-LM.sh $(abs_filelist_path) cpu cpu cpu`, dir=parsed_args["spot1d_lm_dir"]))
-                    #Move files from spot1d outputs to output folder once processed. Clean spot1d directory.
-                    mkpath(f_out_dir)
-                    mv(joinpath(spot1d_lm_output_dir, "$(f_noext).csv"), f_out)
-                catch e
-                    println("Error on $(f_path)")
-                    continue
-                end
-            end
-        end
+function parse_gpu(device)
+    if device == -1
+        return "cpu"
+    else
+        return "cuda:$(device)"
     end
 end
+
+parsed_args = parse_commandline()
+
+function input_conditions(in_file, in_path)
+    return endswith(in_file, parsed_args["extension"])
+end
+
+function commands(f_path, f_noext, f_out)
+    spot1d_lm_output_dir = joinpath(parsed_args["spot1d_lm_dir"], "results/")
+    abs_filelist_path = abspath("tmp_s1dlm_filelist.txt")
+    create_filelist(f_path, abs_filelist_path)
+    run(Cmd(`./run_SPOT-1D-LM.sh $(abs_filelist_path) $(parse_gpu(parsed_args["gpu_device_esm"])) $(parse_gpu(parsed_args["gpu_device_pt"])) $(parse_gpu(parsed_args["gpu_device_lm"]))`, dir=parsed_args["spot1d_lm_dir"]))
+    #Move files from spot1d outputs to output folder once processed. Clean spot1d directory.
+    cp(joinpath(spot1d_lm_output_dir, "$(f_noext).csv"), f_out)
+    rm(abs_filelist_path)
+end
+
+work_on_io_files(parsed_args["input"], parsed_args["output"], input_conditions, "csv", commands, parsed_args["skip_error"], "spot1d_lm/")

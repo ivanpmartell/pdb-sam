@@ -1,10 +1,12 @@
-#Use af2 conda env
 using ArgParse
 include("../common.jl")
 
 function parse_commandline()
     s = ArgParseSettings()
     @add_arg_table! s begin
+        "--skip_error", "-s"
+            help = "Skip files that have previously failed"
+            action = :store_true
         "--input", "-i"
             help = "Input directory"
             required = true
@@ -13,7 +15,7 @@ function parse_commandline()
             required = true
         "--data_dir", "-d"
             help = "Directory containing alphafold databases"
-            required = true #TODO: make optional
+            required = true
         "--parafold_dir", "-a"
             help = "Directory containing ParallelFold repository"
             required = true
@@ -39,35 +41,35 @@ function parse_commandline()
     return parse_args(s)
 end
 
-#TODO: FIX args
 parsed_args = parse_commandline()
-gpu_usage = " "
+gpu_usage = ``
 if parsed_args["use_gpu"]
-    gpu_usage = "-gG"
+    gpu_usage = `-gG`
 end
-parafold_args = " "
+parafold_args = ``
 if parsed_args["msa_only"] && parsed_args["predict_only"]
     throw(ArgumentError("Choose MSA features only or Predict only. To do both, ignore both flags."))
 elseif parsed_args["msa_only"]
-    parafold_args = "-f"
+    parafold_args = `-f`
 elseif parsed_args["predict_only"]
-    parafold_args = "-s"
+    parafold_args = `-s`
 end
 
 function input_conditions(in_file, in_path)
-    return endswith(in_file, parsed_args["extension"]) && startswith(last(splitdir(in_path)), "Cluster") #no error file
+    return endswith(in_file, parsed_args["extension"]) && startswith(last(splitdir(in_path)), "Cluster")
 end
 
 function commands(f_path, f_noext, f_out)
     mkpath(parsed_args["temp_output"])
     features_file = joinpath(parsed_args["temp_output"], "$(f_noext)/features.pkl")
     if isfile("$(f_out).pkl")
+        if parsed_args["msa_only"]
+            return 0
+        end
         mkpath(joinpath(parsed_args["temp_output"], f_noext))
         mv("$(f_out).pkl", features_file)
-        run(Cmd(`./run_alphafold.sh -d $(parsed_args["data_dir"]) -o $(parsed_args["temp_output"]) -p monomer_ptm -i $(f_path) -m model_1,model_2,model_3,model_4,model_5 -t 2020-05-14 -g -G -s`, dir=parsed_args["parafold_dir"]))
     end
-    #TODO: Add gpu_usage and parafold_args instead of the hardcoded ones here ALSO fix the msa_only predict_only mess
-    run(Cmd(`./run_alphafold.sh -d $(parsed_args["data_dir"]) -o $(parsed_args["temp_output"]) -p monomer_ptm -i $(f_path) -m model_1,model_2,model_3,model_4,model_5 -t 2020-05-14 -g -G -P -f`, dir=parsed_args["parafold_dir"]))
+    run(Cmd(`./run_alphafold.sh -d $(parsed_args["data_dir"]) -o $(parsed_args["temp_output"]) -p monomer_ptm -i $(f_path) -m model_1,model_2,model_3,model_4,model_5 -t 2020-05-14 $(gpu_usage) $(parafold_args)`, dir=parsed_args["parafold_dir"]))
     if parsed_args["msa_only"]
         cp(features_file, "$(f_out).pkl")
     else
@@ -75,4 +77,4 @@ function commands(f_path, f_noext, f_out)
     end
 end
 
-work_on_files(parsed_args["input"], parsed_args["output"], input_conditions, "af2/", "pdb", commands, "min")
+work_on_io_files(parsed_args["input"], parsed_args["output"], input_conditions, "pdb", commands, parsed_args["skip_error"], "af2/")

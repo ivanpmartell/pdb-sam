@@ -1,4 +1,5 @@
 #For each tool prediction in a cluster, combine all sspfa and ssfa files into one
+#TODO
 using ArgParse
 using ProgressBars
 using FASTX
@@ -6,13 +7,18 @@ using FASTX
 function parse_commandline()
     s = ArgParseSettings()
     @add_arg_table! s begin
+        "--skip_error", "-k"
+            help = "Skip files that have previously failed"
+            action = :store_true
         "--input", "-i"
             help = "Directory with clusters containing normalized 2d structure and predictions"
             required = true
         "--dssp_extension", "-d"
             help = "DSSP normalized output files' extension. Default .ssfa"
+            default = ".ssfa"
         "--pred_extension", "-p"
             help = "SSP normalized output files' extension. Default .sspfa"
+            default = ".sspfa"
         "--output", "-o"
             help = "Output directory where the agglomerated fasta file will be written. Ignore to use input directory"
     end
@@ -20,15 +26,6 @@ function parse_commandline()
 end
 
 parsed_args = parse_commandline()
-if isnothing(parsed_args["output"])
-    parsed_args["output"] = parsed_args["input"]
-end
-if isnothing(parsed_args["dssp_extension"])
-    parsed_args["dssp_extension"] = ".ssfa"
-end
-if isnothing(parsed_args["pred_extension"])
-    parsed_args["pred_extension"] = ".sspfa"
-end
 
 for (root, dirs, files) in ProgressBar(walkdir(parsed_args["input"]))
     for dir in dirs

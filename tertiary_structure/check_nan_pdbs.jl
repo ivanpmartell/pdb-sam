@@ -5,6 +5,9 @@ include("../common.jl")
 function parse_commandline()
     s = ArgParseSettings()
     @add_arg_table! s begin
+        "--skip_error", "-s"
+            help = "Skip files that have previously failed"
+            action = :store_true
         "--input", "-i"
             help = "Input directory"
             required = true
@@ -38,4 +41,4 @@ function commands(f_path)
     end
 end
 
-look_at_files(parsed_args["input"], input_conditions, commands)
+work_on_input_files(parsed_args["input"], input_conditions, commands, parsed_args["skip_error"])

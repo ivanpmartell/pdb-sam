@@ -3,6 +3,9 @@ using ArgParse
 function parse_commandline()
     s = ArgParseSettings()
     @add_arg_table! s begin
+        "--skip_error", "-k"
+            help = "Skip files that have previously failed"
+            action = :store_true
         "--input", "-i"
             help = "Input directory"
             required = true
@@ -20,28 +23,14 @@ function parse_commandline()
 end
 
 parsed_args = parse_commandline()
-if isnothing(parsed_args["output"])
-    parsed_args["output"] = parsed_args["input"]
+
+function input_conditions(in_file, in_path)
+    return endswith(in_file, parsed_args["extension"])
 end
-for (root, dirs, files) in walkdir(parsed_args["input"])
-    for f in files
-        if endswith(f, parsed_args["extension"])
-            f_path = joinpath(root,f)
-            f_noext = splitext(f)[1]
-            f_path_no_root_folder = lstrip(replace(f_path, Regex("^$(parsed_args["input"])")=>""), '/')
-            f_out_path = dirname(joinpath(parsed_args["output"], f_path_no_root_folder))
-            f_out_path = joinpath(f_out_path, "s4pred/$(f_noext).ss2")
-            if !isfile("$(f_out_path)")
-                println("Working on $(f_path)")
-                try
-                    mkpath(dirname(f_out_path))
-                    s4pred = joinpath(parsed_args["s4pred_dir"], "run_model.py")
-                    write("$(f_out_path)", read(`python $(s4pred) $(f_path)`))
-                catch e
-                    println("Error on $(f_path)")
-                    continue
-                end
-            end
-        end
-    end
+
+function commands(f_path, f_noext, f_out)
+    s4pred = joinpath(parsed_args["s4pred_dir"], "run_model.py")
+    write("$(f_out)", read(`python $(s4pred) $(f_path)`))
 end
+
+work_on_io_files(parsed_args["input"], parsed_args["output"], input_conditions, "ss2", commands, parsed_args["skip_error"], "s4pred/")

@@ -10,11 +10,15 @@ include("../common.jl")
 function parse_commandline()
     s = ArgParseSettings()
     @add_arg_table! s begin
+        "--skip_error", "-k"
+            help = "Skip files that have previously failed"
+            action = :store_true
         "--input", "-i"
             help = "Directory with clusters containing DSSP assignments"
             required = true
         "--extension", "-e"
             help = "DSSP output files' extension. Default .mmcif"
+            default = ".mmcif"
         "--output", "-o"
             help = "Output directory where the prediction fasta file will be written. Ignore to use input directory"
         "--fix", "-f"
@@ -181,9 +185,6 @@ function convert_dssp(f_noext, f_path, f_out_path, seq_file, retry)
 end
 
 parsed_args = parse_commandline()
-if isnothing(parsed_args["extension"])
-    parsed_args["extension"] = ".mmcif"
-end
 
 function input_conditions(in_file, in_path)
     return endswith(in_file, parsed_args["extension"])
@@ -195,4 +196,4 @@ function commands(f_path, f_noext, f_out)
     convert_dssp(f_noext, f_path, f_out, sequence_file, parsed_args["fix"])
 end
 
-work_on_files(parsed_args["input"], parsed_args["output"], input_conditions, "", "ssfa", commands)
+work_on_io_files(parsed_args["input"], parsed_args["output"], input_conditions, "ssfa", commands, parsed_args["skip_error"])

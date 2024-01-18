@@ -4,6 +4,9 @@ include("../common.jl")
 function parse_commandline()
     s = ArgParseSettings()
     @add_arg_table! s begin
+        "--skip_error", "-s"
+            help = "Skip files that have previously failed"
+            action = :store_true
         "--input", "-i"
             help = "Input directory"
             required = true
@@ -45,4 +48,4 @@ function commands(f_path, f_noext, f_out)
     end
 end
 
-work_on_files(parsed_args["input"], parsed_args["output"], input_conditions, "colabfold/", "pdb", commands)
+work_on_io_files(parsed_args["input"], parsed_args["output"], input_conditions, "pdb", commands, parsed_args["skip_error"], "colabfold/")

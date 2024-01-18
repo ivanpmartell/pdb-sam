@@ -9,6 +9,9 @@ ENV["GKSwstype"]="nul"
 function parse_commandline()
     s = ArgParseSettings()
     @add_arg_table! s begin
+        "--skip_error", "-s"
+            help = "Skip files that have previously failed"
+            action = :store_true
         "--input", "-i"
             help = "Input directory"
             required = true
@@ -61,7 +64,7 @@ function commands(f_path) #, f_noext, f_out
             for at in calphas
                  #dict of res_num and list of calphas in its vicinity
                  distance_to_mut = distance(struc['A'][mut_pos], at)
-                if distance_to_mut < 10.0 && resnumber(at) != mut_pos #MIGHT NEED TO CHANGE A TO FIRST KEY OF STRUC
+                if distance_to_mut < 13.0 && resnumber(at) != mut_pos #MIGHT NEED TO CHANGE A TO FIRST KEY OF STRUC
                     #Add to vicinity dict
                     try
                         push!(vicinity[mut_pos], (at, distance_to_mut))
@@ -86,5 +89,4 @@ function commands(f_path) #, f_noext, f_out
     end
 end
 
-#work_on_files(parsed_args["input"], parsed_args["output"], input_conditions, "af2/", "pdb", commands)
-look_at_files(parsed_args["input"], input_conditions, commands)
+work_on_input_files(parsed_args["input"], input_conditions, commands, parsed_args["skip_error"])

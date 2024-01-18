@@ -3,6 +3,9 @@ using ArgParse
 function parse_commandline()
     s = ArgParseSettings()
     @add_arg_table! s begin
+        "--skip_error", "-k"
+            help = "Skip files that have previously failed"
+            action = :store_true
         "--input", "-i"
             help = "Input directory"
             required = true
@@ -20,36 +23,23 @@ function parse_commandline()
 end
 
 parsed_args = parse_commandline()
-if isnothing(parsed_args["output"])
-    parsed_args["output"] = parsed_args["input"]
+out_ext = "spot1d"
+
+function input_conditions(in_file, in_path)
+    return endswith(in_file, parsed_args["extension"])
 end
-for (root, dirs, files) in walkdir(parsed_args["input"])
-    for f in files
-        if endswith(f, parsed_args["extension"])
-            f_path = joinpath(root,f)
-            f_noext = splitext(f)[1]
-            spot1d_input_dir = joinpath(parsed_args["spot1d_dir"], "inputs/")
-            spot1d_input_file = joinpath(spot1d_input_dir, "$(f_noext).fasta")
-            spot1d_output_dir = joinpath(parsed_args["spot1d_dir"], "outputs/")
-            f_path_no_root_folder = lstrip(replace(f_path, Regex("^$(parsed_args["input"])")=>""), '/')
-            f_out_path = dirname(joinpath(parsed_args["output"], f_path_no_root_folder))
-            f_out_dir = joinpath(f_out_path, "spot1d/")
-            f_out = joinpath(f_out_dir, "$(f_noext).spot1d")
-            if !isfile("$(f_out)")
-                println("Working on $(f_path)")
-                try
-                    foreach(rm, filter(endswith(".fasta"), readdir(spot1d_input_dir,join=true)))
-                    cp(f_path, spot1d_input_file, force=true)
-                    run(Cmd(`./run_spot1d.sh`, dir=parsed_args["spot1d_dir"]))
-                    #Move files from spot1d outputs to output folder once processed. Clean spot1d directory.
-                    mkpath(f_out_dir)
-                    mv(joinpath(spot1d_output_dir, "$(f_noext).spot1d"), f_out)
-                    rm(spot1d_input_file)
-                catch e
-                    println("Error on $(f_path)")
-                    continue
-                end
-            end
-        end
-    end
+
+function commands(f_path, f_noext, f_out)
+    input_ext = "fasta"
+    spot1d_input_dir = joinpath(parsed_args["spot1d_dir"], "inputs/")
+    spot1d_input_file = joinpath(spot1d_input_dir, "$(f_noext).$(input_ext)")
+    spot1d_output_dir = joinpath(parsed_args["spot1d_dir"], "outputs/")
+    #Clean input directory to prevent processing of previous inputs
+    foreach(rm, filter(endswith(".$(input_ext)"), readdir(spot1d_input_dir,join=true)))
+    cp(f_path, spot1d_input_file, force=true)
+    run(Cmd(`./run_spot1d.sh`, dir=parsed_args["spot1d_dir"]))
+    #Move files from spot1d outputs to output folder once processed. Clean spot1d directory.
+    cp(joinpath(spot1d_output_dir, "$(f_noext).$(out_ext)"), f_out)
 end
+
+work_on_io_files(parsed_args["input"], parsed_args["output"], input_conditions, out_ext, commands, parsed_args["skip_error"], "spot1d/")

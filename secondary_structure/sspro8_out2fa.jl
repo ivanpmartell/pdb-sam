@@ -1,18 +1,19 @@
 using ArgParse
-using ProgressBars
-using DelimitedFiles
-using DataFrames
 using FASTX
 using BioSequences
 
 function parse_commandline()
     s = ArgParseSettings()
     @add_arg_table! s begin
+        "--skip_error", "-k"
+            help = "Skip files that have previously failed"
+            action = :store_true
         "--input", "-i"
             help = "Directory with clusters containing SSPro8 predictions"
             required = true
         "--extension", "-e"
             help = "SSPro8 output files' extension. Default .ss8"
+            default = ".ss8"
         "--output", "-o"
             help = "Output directory where the prediction fasta file will be written. Ignore to use input directory"
     end
@@ -29,31 +30,16 @@ function readsspro8(pred_path)
 end
 
 parsed_args = parse_commandline()
-if isnothing(parsed_args["output"])
-    parsed_args["output"] = parsed_args["input"]
+
+function input_conditions(in_file, in_path)
+    return endswith(in_file, parsed_args["extension"]) && last(splitdir(in_path)) == "sspro8"
 end
-if isnothing(parsed_args["extension"])
-    parsed_args["extension"] = ".ss8"
-end
-for (root, dirs, files) in ProgressBar(walkdir(parsed_args["input"]))
-    for f in files
-        if endswith(f, parsed_args["extension"])
-            f_path = joinpath(root,f)
-            prediction_dir = last(split(dirname(f_path), '/'))
-            if prediction_dir == "sspro8"
-                f_noext = splitext(f)[1]
-                f_path_no_root_folder = lstrip(replace(f_path, Regex("^$(parsed_args["input"])")=>""), '/')
-                f_out_dir = dirname(joinpath(parsed_args["output"], f_path_no_root_folder))
-                f_out_path = joinpath(f_out_dir, "$(f_noext).sspfa")
-                if !isfile(f_out_path)
-                    seq, pred_str = readsspro8(f_path)
-                    #Write fasta file with single record id from filename
-                    mkpath(f_out_dir)
-                    FASTA.Writer(open(f_out_path, "w")) do writer
-                        write(writer, FASTA.Record("$(f_noext)_sspro8", LongCharSeq(pred_str)))
-                    end
-                end
-            end
-        end
+
+function commands(f_path, f_noext, f_out)
+    seq, pred_str = readsspro8(f_path)
+    FASTA.Writer(open(f_out, "w")) do writer
+        write(writer, FASTA.Record("$(f_noext)_sspro8", LongCharSeq(pred_str)))
     end
 end
+
+work_on_io_files(parsed_args["input"], parsed_args["output"], input_conditions, "sspfa", commands, parsed_args["skip_error"])

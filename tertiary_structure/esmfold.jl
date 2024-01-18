@@ -1,17 +1,19 @@
-#Use esmfold conda env
 using ArgParse
 include("../common.jl")
 
 function parse_commandline()
     s = ArgParseSettings()
     @add_arg_table! s begin
+        "--skip_error", "-s"
+            help = "Skip files that have previously failed"
+            action = :store_true
         "--input", "-i"
             help = "Input directory"
             required = true
         "--extension", "-e"
             help = "Extension for input files. Usually '.fa' or '.ala'"
             required = true
-        "--esmfold_exe", "-s"
+        "--esmfold_exe", "-m"
             help = "ESMFold executable file. Usually esm-fold"
             required = true
         "--output", "-o"
@@ -41,4 +43,4 @@ function commands(f_path, f_noext, f_out)
     end
 end
 
-work_on_files(parsed_args["input"], parsed_args["output"], input_conditions, "esmfold/", "pdb", commands)
+work_on_io_files(parsed_args["input"], parsed_args["output"], input_conditions, "pdb", commands, parsed_args["skip_error"], "esmfold/")

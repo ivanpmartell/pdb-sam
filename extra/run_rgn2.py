@@ -1,4 +1,3 @@
-#RUN with rgn2 conda env
 import os
 import sys
 import re

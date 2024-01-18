@@ -3,6 +3,9 @@ using ArgParse
 function parse_commandline()
     s = ArgParseSettings()
     @add_arg_table! s begin
+        "--skip_error", "-k"
+            help = "Skip files that have previously failed"
+            action = :store_true
         "--input", "-i"
             help = "Input directory"
             required = true
@@ -14,6 +17,8 @@ function parse_commandline()
             required = true
         "--output", "-o"
             help = "Output directory. Ignore to write files in input directory"
+        "--gpu", "-g"
+            help = "Use GPU for faster prediction"
 
     end
     return parse_args(s)
@@ -30,35 +35,21 @@ function create_filelist(current_file_path, filelist_path)
 end
 
 parsed_args = parse_commandline()
-if isnothing(parsed_args["output"])
-    parsed_args["output"] = parsed_args["input"]
+device = "cpu"
+if parsed_args["gpu"]
+    device = "cuda:0"
 end
-for (root, dirs, files) in walkdir(parsed_args["input"])
-    for f in files
-        if endswith(f, parsed_args["extension"])
-            f_path = joinpath(root,f)
-            f_noext = splitext(f)[1]
-            f_path_no_root_folder = lstrip(replace(f_path, Regex("^$(parsed_args["input"])")=>""), '/')
-            f_out_path = dirname(joinpath(parsed_args["output"], f_path_no_root_folder))
-            f_out_dir = joinpath(f_out_path, "spot1d_single/")
-            if !isfile(joinpath(f_out_dir, "$(f_noext).csv"))
-                println("Working on $(f_path)")
-                try
-                    filelist_path = "tmp_s1ds_filelist.txt"
-                    abs_filelist_path = joinpath(pwd(), filelist_path)
-                    create_filelist(f_path, filelist_path)
-                    mkpath(f_out_dir)
-                    abs_f_out_dir = f_out_dir
-                    if !startswith(f_out_dir, '/')
-                        abs_f_out_dir = joinpath(pwd(), f_out_dir)
-                    end
-                    run(Cmd(`python spot1d_single.py --file_list $(abs_filelist_path) --save_path $(abs_f_out_dir) --device cpu`, dir=parsed_args["spot1d_single_dir"]))
-                    rm(abs_filelist_path)
-                catch e
-                    println("Error on $(f_path)")
-                    continue
-                end
-            end
-        end
-    end
+
+function input_conditions(in_file, in_path)
+    return endswith(in_file, parsed_args["extension"])
 end
+
+function commands(f_path, f_noext, f_out)
+    abs_filelist_path = abspath("tmp_s1ds_filelist.txt")
+    create_filelist(f_path, abs_filelist_path)
+    abs_f_out_dir = abspath(dirname(f_out))
+    run(Cmd(`python spot1d_single.py --file_list $(abs_filelist_path) --save_path $(abs_f_out_dir) --device $(device)`, dir=parsed_args["spot1d_single_dir"]))
+    rm(abs_filelist_path)
+end
+
+work_on_io_files(parsed_args["input"], parsed_args["output"], input_conditions, "csv", commands, parsed_args["skip_error"], "spot1d_single/")
