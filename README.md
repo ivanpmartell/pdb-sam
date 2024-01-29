@@ -8,7 +8,6 @@ RCSB PDB simple amino-acid mutation clusters
 ```LogExpFunctions```
 ```Pandas```
 ```PyCall```
-```Glob```
 ```ArgParse```
 ```ProgressBars```
 

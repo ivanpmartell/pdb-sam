@@ -1,153 +1,85 @@
 using Dates
 
-function work_on_io_files(input, output, in_conditions, out_ext, run_cmds, skip_error=false, out_dir="", runtime_unit="min")
+function monitor_process(script_args, commands, input_conditions=default_input_condition, initialize=default_var_procedure, preprocess=default_var_procedure, finalize=default_var_procedure, var=Dict(), input_type='f', nested=false, skip_error=false, runtime_unit="min")
     start_time = now()
-    if isnothing(output)
-        output = input
-    end
-    abs_input = abspath(input)
-    abs_output = abspath(output)
+    initialize(script_args, var) #Define abs_input, abs_output
+    print_log(start_time, "Starting work on $(var["abs_input"])")
     counter = 0
     error_counter = 0
-    print_log(start_time, "Working on $(abs_input)")
-    for (root, dirs, files) in walkdir(abs_input)
-        for f in files
-            if in_conditions(f, root)
-                iter_start_time = now()
-                counter += 1
-                f_path = joinpath(root, f)
-                f_noext = first(split(f, "."))
-                f_out = calculate_output_dir(abs_input, abs_output, f_path, "$(f_noext).$(out_ext)", out_dir)
-                error_path = "$(f_out).err"
-                if !isfile(f_out)
-                    if skip_error && isfile(error_path)
-                        print_runtime(iter_start_time, runtime_unit, "Skipping $(f_path)")
-                        println("INFO: Delete error (.err) file to process the file at")
-                        println(error_path)
-                        continue
-                    end
-                    print_log(start_time, "Working on $(f_path)")
-                    try
-                        mkpath(dirname(f_out))
-                        run_cmds(f_path, f_noext, f_out)
-                        print_runtime(iter_start_time, runtime_unit, "Finished on $(f_path)")
-                    catch e
-                        print_runtime(iter_start_time, runtime_unit, "ERROR: Read more at $(error_path)")
-                        open(error_path, "a") do error_file
-                            println(error_file, e)
-                        end
-                        error_counter += 1
-                        continue
-                    end
+    for input in process_input(var["abs_input"], input_conditions, input_type, script_args, nested)
+        iter_start_time = now()
+        counter += 1
+        if length(var["abs_input"]) == 1
+            var["input_path"] = input
+        else
+            var["input_path"] = joinpath(var["abs_input"], input)
+        end
+        var["input_basename"] = basename(input)
+        var["input_noext"] = first(split(var["file_basename"], "."))
+        preprocess(script_args, var) #Define output_file, abs_output_dir, error_file
+        if !isfile(var["output_file"])
+            if skip_error && isfile(var["error_file"])
+                print_runtime(iter_start_time, runtime_unit, "Skipping $(input)")
+                println("INFO: Delete error (.err) file to process skipped file")
+                continue
+            end
+            print_log(start_time, "Working on $(input)")
+            try
+                mkpath(var["abs_output_dir"])
+                commands(script_args, var)
+                print_runtime(iter_start_time, runtime_unit, "Finished on $(input)")
+            catch e
+                print_runtime(iter_start_time, runtime_unit, "ERROR: Read more at $(var["error_file"])")
+                open(var["error_file"], "a") do error_file
+                    println(error_file, e)
                 end
+                error_counter += 1
+                continue
             end
         end
     end
-    print_runtime(start_time, runtime_unit, "Finished on $(abs_input)")
-    println("$(error_counter) errors found in $(counter) files")
+    finalize(script_args, var)
+    if counter > 1
+        print_runtime(start_time, runtime_unit, "Finished on $(var["abs_input"])")
+        println("$(error_counter) errors found in $(counter) files")
+    end
 end
 
-function work_at_base_path(input, output, in_conditions, out_dir, out_filename, out_ext, run_cmds, skip_error=false, runtime_unit="min")
-    start_time = now()
-    if isnothing(output)
-        output = input
+function work_on_single(script_args, run_cmds, in_conditions=default_input_condition, initialize=default_var_procedure, preprocess=default_var_procedure, finalize=default_var_procedure, runtime_unit="min")
+    default_output_arg!(script_args)
+    var = Dict()
+    var["abs_input"], var["abs_output"] = get_abspaths(script_args["input"], script_args["output"])
+    if !isfile(var["abs_input"])
+        throw(ErrorException("Input is not a file"))
     end
-    abs_input = abspath(input)
-    abs_output = abspath(output)
-    print_log(start_time, "Working on $(abs_input)")
-    counter = 0
-    error_counter = 0
-    for (root, dirs, files) in walkdir(abs_input)
-        for f in files
-            if in_conditions(f, root)
-                iter_start_time = now()
-                counter += 1
-                error_path = "$(f_path).err"
-                if skip_error && isfile(error_path)
-                    print_runtime(iter_start_time, runtime_unit, "Skipping $(f_path)")
-                    println("INFO: Delete error (.err) file to process the file at")
-                    println(error_path)
-                    continue
-                end
-                f_path = joinpath(root, f)
-                print_log(start_time, "Working on $(f_path)")
-
-                f_path_split = splitpath(f_path)
-                f_name = last(f_path_split)
-                f_noext = first(split(f_name, "."))
-                cluster_dir_index = findlast(x -> startswith(x, out_dir), f_path_split)
-                cluster_dir_name = f_path_split[cluster_dir_index]
-                cluster_path = joinpaths(f_path_split[1:cluster_dir_index])
-                cluster_path_dummy = joinpath(cluster_path, "dummy.file")
-                f_out = ""
-                if out_filename == "input_filename"
-                    f_out = calculate_output_dir(abs_input, abs_output, cluster_path_dummy, "$(f_noext).$(out_ext)")
-                elseif out_filename == "directory_name"
-                    f_out = calculate_output_dir(abs_input, abs_output, cluster_path_dummy, "$(cluster_dir_name).$(out_ext)")
-                else
-                    throw(ArgumentError("Output filename had an incorrect format"))
-                end
-                try
-                    run_cmds(f_path, f_out)
-                    print_runtime(iter_start_time, runtime_unit, "Finished on $(f_path)")
-                catch e
-                    print_runtime(iter_start_time, runtime_unit, "Error on $(f_path)")
-                    open(error_path, "w") do error_file
-                        println(error_file, e)
-                    end
-                    error_counter += 1
-                    continue
-                end
-            end
-        end
-    end
-    print_runtime(start_time, runtime_unit, "Finished on $(abs_input)")
-    println("$(error_counter) errors found in $(counter) files")
+    var["output_file"] = var["abs_output"]
+    var["abs_output_dir"] = dirname(var["abs_output"])
+    monitor_process(run_cmds; input_conditions=in_conditions, initialize=initialize, preprocess=preprocess, finalize=finalize, var=var, skip_error=script_args["skip_error"], runtime_unit=runtime_unit)
 end
 
-function work_on_input_files(input, in_conditions, run_cmds, skip_error=false, runtime_unit="min")
-    start_time = now()
-    abs_input = abspath(input)
-    print_log(start_time, "Working on $(abs_input)")
-    counter = 0
-    error_counter = 0
-    for (root, dirs, files) in walkdir(abs_input)
-        for f in files
-            if in_conditions(f, root)
-                iter_start_time = now()
-                counter += 1
-                f_path = joinpath(root, f)
-                error_path = "$(f_path).err"
-                if skip_error && isfile(error_path)
-                    print_runtime(iter_start_time, runtime_unit, "Skipping $(f_path)")
-                    println("INFO: Delete error (.err) file to process the file at")
-                    println(error_path)
-                    continue
-                end
-                print_log(start_time, "Working on $(f_path)")
-                try
-                    run_cmds(f_path)
-                    print_runtime(iter_start_time, runtime_unit, "Finished on $(f_path)")
-                catch e
-                    print_runtime(iter_start_time, runtime_unit, "Error on $(f_path)")
-                    open(error_path, "w") do error_file
-                        println(error_file, e)
-                    end
-                    error_counter += 1
-                    continue
-                end
-            end
-        end
+function work_on_multiple(script_args, run_cmds, input_type, in_conditions=default_input_condition, initialize=default_var_procedure, preprocess=default_var_procedure, finalize=default_var_procedure, runtime_unit="min", nested=true)
+    default_output_arg!(script_args)
+    var = Dict()
+    var["abs_input"], var["abs_output"] = no_output_equals_input(input, output)
+    if !isfile(var["abs_input"])
+        throw(ErrorException("Input is not a directory"))
     end
-    print_runtime(start_time, runtime_unit, "Finished on $(abs_input)")
-    println("$(error_counter) errors found in $(counter) files")
+    monitor_process(run_cmds; input_conditions=in_conditions, initialize=initialize, preprocess=preprocess, finalize=finalize, var=var, input_type=input_type, nested=nested, skip_error=script_args["skip_error"], runtime_unit=runtime_unit)
 end
 
-function calculate_output_dir(abs_input, abs_output, f_path, f_out_name, out_dir="")
-    f_path_no_root_folder = f_path[length(rstrip(abs_input,'/'))+2:end]
-    f_out_path = dirname(joinpath(abs_output, f_path_no_root_folder))
+function default_output_arg!(parsed_arguments)
+    try
+        parsed_arguments["output"]
+    catch KeyError
+        parsed_arguments["output"] = ""
+    end
+end
+
+function keep_input_dir_structure(abs_input, abs_output, abs_directory, out_dir)
+    abs_directory_no_root_folder = abs_directory[length(rstrip(abs_input,'/'))+2:end]
+    f_out_path = joinpath(abs_output, abs_directory_no_root_folder)
     f_out_dir = joinpath(f_out_path, out_dir)
-    return joinpath(f_out_dir, f_out_name)
+    return f_out_dir
 end
 
 function print_runtime(start_time, unit, msg)
@@ -155,12 +87,15 @@ function print_runtime(start_time, unit, msg)
     if unit == "min"
         time_taken = Dates.value(end_time - start_time) / 60000
         println("Runtime: $(round(time_taken, digits=3)) minutes")
+    elseif unit == "hour"
+        time_taken = Dates.value(end_time - start_time) / 3600000
+        println("Runtime: $(round(time_taken, digits=3)) hours")
     elseif unit == "sec"
         time_taken = Dates.value(end_time - start_time) / 1000
         println("Runtime: $(round(time_taken, digits=3)) seconds")
     else
-        time_taken = Dates.value(end_time - start_time) / 3600000
-        println("Runtime: $(round(time_taken, digits=3)) hours")
+        time_taken = Dates.value(end_time - start_time)
+        println("Runtime: $(round(time_taken, digits=3)) ms")
     end
     print_log(end_time, msg)
 end
@@ -177,3 +112,168 @@ function joinpaths(paths::Union{Tuple{AbstractString}, AbstractVector{AbstractSt
     end
     joinpath(joinpaths(paths[1:end-1]), last(paths))
 end
+
+function process_input(input, input_type, input_conditions, script_args, nested)
+    if isfile(input)
+        return process_file(input, input_conditions, script_args)
+    elseif isdir(input)
+        if input_type == 'f'
+            return process_files(input, input_conditions, script_args, nested)
+        elseif input_type == 'd'
+            return process_directories(input, input_conditions, script_args, nested)
+        end
+    else
+        throw(ErrorException("Input not found"))
+    end
+end
+
+function process_file(input_file, input_conditions, script_args)
+    if input_conditions(input_file)
+        return [input_file]
+    else
+        throw(ErrorException("Input file does not meet conditions"))
+    end
+end
+
+function process_files(input_dir, input_conditions, script_args, nested)
+    files = Vector{String}()
+    if nested
+        for (root, dirs, files) in walkdir(input_dir)
+            for f in files
+                f_path = joinpath(root, f)
+                if input_conditions(script_args, f_path)
+                    push!(files, get_relpath(input_dir, f_path))
+                end
+            end
+        end
+    else
+        for f in readdir(input_dir)
+            f_path = joinpath(input_dir, f)
+            if isfile(f_path)
+                if input_conditions(script_args, f_path)
+                    push!(files, get_relpath(input_dir, f_path))
+                end
+            end
+        end
+    end
+    return files
+end
+
+function process_directories(input_dir, input_conditions, script_args, nested)
+    directories = Vector{String}()
+    if nested
+        for (root, dirs, files) in walkdir(input_dir)
+            for dir in dirs
+                dir_path = joinpath(root, dir)
+                if input_conditions(script_args, dir_path)
+                    push!(directories, get_relpath(input_dir, dir_path))
+                end
+            end
+        end
+    else
+        for dir in readdir(input_dir)
+            dir_path = joinpath(input_dir, dir)
+            if isdir(dir_path)
+                if input_conditions(script_args, dir_path)
+                    push!(directories, get_relpath(input_dir, dir_path))
+                end
+            end
+        end
+    end
+    return directories
+end
+
+function basename_ext(path)
+    f = basename(path)
+    f_name, f_ext= split(f, '.', limit=2)
+    return f_name, ".$(f_ext)"
+end
+
+function remove_ext(path)
+    return first(split(f, '.', limit=2))
+end
+
+function has_extension(f::AbstractString, ext::AbstractString)
+    ext = lstrip(ext, '.')
+    f_name, f_ext = basename_ext(f)
+    return f_ext == ext
+end
+
+function has_extension(f::AbstractString, ext::Vector{AbstractString})
+    ext = modify(ext, lstrip, '.')
+    f_name, f_ext = basename_ext(f)
+    return f_ext in ext
+end
+
+function has_extension!(f::AbstractString, ext::Vector{AbstractString})
+    ext = modify!(ext, lstrip, '.')
+    f_name, f_ext = basename_ext(f)
+    return f_ext in ext
+end
+
+function modify(vec, cmd, args)
+    vec2 = typeof(vec)(undef, length(vec))
+    for i in eachindex(vec)
+        vec2[i] = cmd(vec[i], args)
+    end
+    return vec2
+end
+
+function modify!(vec, cmd, args)
+    for i in eachindex(vec)
+        vec[i] = cmd(vec[i], args)
+    end
+end
+
+function ensure_new_file(f)
+    if !(isfile(f))
+        mkpath(dirname(f))
+        touch(f)
+    else
+        rm(f)
+        ensure_new_file(f)
+    end
+end
+
+function get_abspaths(input, output)
+    abs_input = get_abspath(input)
+    abs_output = get_abspath(output)
+    return abs_input, abs_output
+end
+
+function get_abspath(path)
+    abs_input = ""
+    if !isnothing(path)
+        if !isempty(path)
+            abs_input = abspath(path)
+        end
+    end
+    return abs_input
+end
+
+function get_relpath(dir, path)
+    return lstrip(path[length(dir)+1:end], '/')
+end
+
+function no_output_equals_input(input, output)
+    if isnothing(output)
+        output = input
+    end
+    return get_abspaths(input, output)
+end
+
+function input_dir_out_preprocess!(var, fname, fext="", cdir="", basedir="")
+    if isempty(basedir)
+        basedir = dirname(var["input_file"])
+    end
+    output_basename = "$(fname)"
+    if !isempty(fext)
+        output_basename = "$(fname).$(fext)"
+    end
+    var["abs_output_dir"] = keep_input_dir_structure(var["abs_input"], var["abs_output"], basedir, cdir)
+    var["output_file"] = joinpath(var["abs_output_dir"], output_basename)
+    var["error_file"] = "$(var["output_file"]).err"
+end
+
+default_input_condition(args::Dict{String, Any}, path::String) = return true
+default_var_procedure(args::Dict{String, Any}, vars::Dict{String, Any}) = return true

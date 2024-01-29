@@ -1,13 +1,14 @@
 using ArgParse
-using Glob
-using ProgressBars
 using BioSequences
-using DataFrames
 using FASTX
+include("./common.jl")
 
 function parse_commandline()
     s = ArgParseSettings()
     @add_arg_table! s begin
+        "--skip_error", "-k"
+            help = "Skip files that have previously failed"
+            action = :store_true
         "--input", "-i"
             help = "Input directory. Cluster folders with fasta files required"
             required = true
@@ -18,9 +19,11 @@ function parse_commandline()
     return parse_args(s)
 end
 
+fasta_ext(f) = return has_extension(f, ".fa")
+
 function read_fasta_in_dir(cluster_dir)
     fa_records = Vector{FASTA.Record}()
-    for f_path in glob("*.fa", cluster_dir)
+    for f_path in process_files(cluster_dir, fasta_ext)
         FASTA.Reader(open(f_path)) do reader
             append!(fa_records, collect(reader))
         end
@@ -28,9 +31,9 @@ function read_fasta_in_dir(cluster_dir)
     return fa_records
 end
 
-function check_fasta_file(dir, cluster_fas)
+function check_fasta_file(check_file, dir, cluster_fas)
     duplicates = Dict{String, Vector{FASTA.Record}}()
-    FASTA.Reader(open(parsed_args["check_file"])) do reader
+    FASTA.Reader(open(check_file)) do reader
         for check_record in reader
             for fa_rec in cluster_fas
                 fa_rec_id = lowercase(first(split(identifier(fa_rec), '_')))
@@ -47,9 +50,9 @@ function check_fasta_file(dir, cluster_fas)
     return duplicates
 end
 
-function check_txt_file(dir, cluster_fas)
+function check_txt_file(check_file, dir, cluster_fas)
     duplicates = Dict{String, Vector{FASTA.Record}}()
-    open(parsed_args["check_file"]) do reader
+    open(check_file) do reader
         for check_record in eachline(reader)
             for fa_rec in cluster_fas
                 fa_rec_id = lowercase(first(split(identifier(fa_rec), '_')))
@@ -67,30 +70,40 @@ function check_txt_file(dir, cluster_fas)
     return duplicates
 end
 
-parsed_args = parse_commandline()
+input_conditions(a,d) = return startswith(d, "Cluster")
 
-amount_dups = 0
-total_amount = 0
-for (root, dirs, files) in ProgressBar(walkdir(parsed_args["input"]))
-    for dir in dirs
-        if startswith(dir, "Cluster")
-            cluster_dir = joinpath(root, dir)
-            cluster_fas = read_fasta_in_dir(cluster_dir)
-            duplicates = Dict{String, Vector{FASTA.Record}}()
-            if last(splitext(parsed_args["check_file"])) == ".fa" || last(splitext(parsed_args["check_file"])) == ".fasta"
-                duplicates = check_fasta_file(dir, cluster_fas)
-            elseif last(splitext(parsed_args["check_file"])) == ".txt"
-                duplicates = check_txt_file(dir, cluster_fas)
-            else
-                throw(ErrorException("Check file has an unknown format"))
-            end
-            global total_amount += 1
-            if !isempty(duplicates)
-                global amount_dups += 1
-                println(duplicates)
-                #Write to file (.csv)
-            end
-        end
+function initialize!(args, var)
+    var["amount_dups"] = 0
+    var["total_amount"] = 0
+    var["error_file"] = "$(args["check_file"]).err"
+end
+
+function finalize(args, var)
+    println("$(var["amount_dups"]) out of $(var["total_amount"]) were found in $(basename(args["check_file"]))")
+end
+
+function commands(args, var)
+    cluster_fas = read_fasta_in_dir(var["input_path"])
+    duplicates = Dict{String, Vector{FASTA.Record}}()
+    if last(splitext(args["check_file"])) == ".fa" || last(splitext(args["check_file"])) == ".fasta"
+        duplicates = check_fasta_file(args["check_file"], var["input_basename"], cluster_fas)
+    elseif last(splitext(args["check_file"])) == ".txt"
+        duplicates = check_txt_file(args["check_file"], var["input_basename"], cluster_fas)
+    else
+        throw(ErrorException("Check file has an unknown format"))
+    end
+    var["total_amount"] += 1
+    if !isempty(duplicates)
+        var["amount_dups"] += 1
+        println("Amount of duplicates: $(duplicates)")
+        #TODO:Write to file (.csv)
     end
 end
-println("$(amount_dups) out of $(total_amount) were found in $(basename(parsed_args["check_file"]))")
+
+function main()::Cint
+    parsed_args = parse_commandline()
+    work_on_multiple(parsed_args, commands, 'd'; in_conditions=input_conditions, initialize=initialize!, finalize=finalize, nested=false)
+    return 0
+end
+
+main()

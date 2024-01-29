@@ -1,11 +1,10 @@
-#Use af2 conda env
 using ArgParse
 include("../common.jl")
 
 function parse_commandline()
     s = ArgParseSettings()
     @add_arg_table! s begin
-        "--skip_error", "-s"
+        "--skip_error", "-k"
             help = "Skip files that have previously failed"
             action = :store_true
         "--input", "-i"
@@ -30,21 +29,27 @@ function parse_commandline()
     return parse_args(s)
 end
 
-parsed_args = parse_commandline()
-gpu_usage = "--use_gpu=True"
-if !parsed_args["use_gpu"]
-    gpu_usage = "--use_gpu=False"
+input_conditions(a,f) = return has_extension(f, a["extension"]) && startswith(last(splitdir(dirname(f))), "Cluster")
+
+function preprocess!(args, var)
+    input_dir_out_preprocess!(var, var["input_noext"], "pdb", "af2/")
 end
 
-function input_conditions(in_file, in_path)
-    return endswith(in_file, parsed_args["extension"]) && startswith(last(splitdir(in_path)), "Cluster")
+function commands(args, var)
+    mkpath(args["temp_output"])
+    af2 = joinpath(args["af2_dir"], "docker/run_docker.py")
+    run(`python $(af2) --fasta_paths=$(var["input_path"]) $(gpu_usage) --max_template_date=2020-05-14 --docker_user=0`)
+    mv(joinpath(args["temp_output"], "$(var["input_noext"])/ranked_0.pdb"), var["output_file"])
 end
 
-function commands(f_path, f_noext, f_out)
-    mkpath(parsed_args["temp_output"])
-    af2 = joinpath(parsed_args["af2_dir"], "docker/run_docker.py")
-    run(`python $(af2) --fasta_paths=$(f_path) $(gpu_usage) --max_template_date=2020-05-14 --docker_user=0`)
-    mv(joinpath(parsed_args["temp_output"], "$(f_noext)/ranked_0.pdb"), f_out)
+function main()::Cint
+    parsed_args = parse_commandline()
+    gpu_usage = "--use_gpu=True"
+    if !parsed_args["use_gpu"]
+        gpu_usage = "--use_gpu=False"
+    end
+    work_on_multiple(parsed_args, commands, 'f'; in_conditions=input_conditions, preprocess=preprocess!)
+    return 0
 end
 
-work_on_io_files(parsed_args["input"], parsed_args["output"], input_conditions, "pdb", commands, parsed_args["skip_error"], "af2/")
+main()

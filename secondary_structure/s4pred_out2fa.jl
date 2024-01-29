@@ -3,6 +3,7 @@ using DelimitedFiles
 using DataFrames
 using FASTX
 using BioSequences
+include("../common.jl")
 
 function parse_commandline()
     s = ArgParseSettings()
@@ -22,14 +23,14 @@ function parse_commandline()
     return parse_args(s)
 end
 
-parsed_args = parse_commandline()
+input_conditions(a,f) = return has_extension(f, a["extension"]) && last(splitdir(dirname(f))) == "s4pred"
 
-function input_conditions(in_file, in_path)
-    return endswith(in_file, parsed_args["extension"]) && last(splitdir(in_path)) == "s4pred"
+function preprocess!(args, var)
+    input_dir_out_preprocess!(var, var["input_noext"], "sspfa")
 end
 
-function commands(f_path, f_noext, f_out)
-    delimited = readdlm(f_path, ' ', comments=true)
+function commands(args, var)
+    delimited = readdlm(var["input_path"], ' ', comments=true)
     predictions = Matrix{Any}(undef, size(delimited, 1), 6)
     for i in axes(delimited, 1)
         predictions[i, :] = filter(!isempty, delimited[i, :])
@@ -38,9 +39,15 @@ function commands(f_path, f_noext, f_out)
     pred_array = pred_df[:, "ss3"]
     pred_str = join(pred_array)
     #Write fasta file with single record id from filename
-    FASTA.Writer(open(f_out, "w")) do writer
-        write(writer, FASTA.Record("$(f_noext)_s4pred", LongCharSeq(pred_str)))
+    FASTA.Writer(open(var["output_file"], "w")) do writer
+        write(writer, FASTA.Record("$(var["input_noext"])_s4pred", LongCharSeq(pred_str)))
     end
 end
 
-work_on_io_files(parsed_args["input"], parsed_args["output"], input_conditions, "sspfa", commands, parsed_args["skip_error"])
+function main()::Cint
+    parsed_args = parse_commandline()
+    work_on_multiple(parsed_args, commands, 'f'; in_conditions=input_conditions, preprocess=preprocess!)
+    return 0
+end
+
+main()

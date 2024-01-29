@@ -4,7 +4,7 @@ include("../common.jl")
 function parse_commandline()
     s = ArgParseSettings()
     @add_arg_table! s begin
-        "--skip_error", "-s"
+        "--skip_error", "-k"
             help = "Skip files that have previously failed"
             action = :store_true
         "--input", "-i"
@@ -20,14 +20,20 @@ function parse_commandline()
     return parse_args(s)
 end
 
-parsed_args = parse_commandline()
+input_conditions(a,f) = return has_extension(f, a["extension"])
 
-function input_conditions(in_file, in_path)
-    return endswith(in_file, parsed_args["extension"])
+function preprocess!(args, var)
+    input_dir_out_preprocess!(var, var["input_noext"], "pdb.mmcif")
 end
 
-function commands(f_path, f_noext, f_out)
-    run(`mkdssp $(f_path) $(f_out)`)
+function commands(args, var)
+    run(`mkdssp $(var["input_path"]) $(var["output_file"])`)
 end
 
-work_on_io_files(parsed_args["input"], parsed_args["output"], input_conditions, "pdb.mmcif", commands, parsed_args["skip_error"])
+function main()::Cint
+    parsed_args = parse_commandline()
+    work_on_multiple(parsed_args, commands, 'f'; in_conditions=input_conditions, preprocess=preprocess!)
+    return 0
+end
+
+main()

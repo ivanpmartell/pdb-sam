@@ -1,4 +1,5 @@
 using ArgParse
+include("../common.jl")
 
 function parse_commandline()
     s = ArgParseSettings()
@@ -34,22 +35,31 @@ function create_filelist(current_file_path, filelist_path)
     end
 end
 
-parsed_args = parse_commandline()
-device = "cpu"
-if parsed_args["gpu"]
-    device = "cuda:0"
+input_conditions(a,f) = return has_extension(f, a["extension"])
+
+function initialize!(args, var)
+    var["device"] = "cpu"
+    if args["gpu"]
+        var["device"] = "cuda:0"
+    end
 end
 
-function input_conditions(in_file, in_path)
-    return endswith(in_file, parsed_args["extension"])
+function preprocess!(args, var)
+    input_dir_out_preprocess!(var, var["input_noext"], "csv", "spot1d_single/")
 end
 
-function commands(f_path, f_noext, f_out)
+function commands(args, var)
     abs_filelist_path = abspath("tmp_s1ds_filelist.txt")
-    create_filelist(f_path, abs_filelist_path)
-    abs_f_out_dir = abspath(dirname(f_out))
-    run(Cmd(`python spot1d_single.py --file_list $(abs_filelist_path) --save_path $(abs_f_out_dir) --device $(device)`, dir=parsed_args["spot1d_single_dir"]))
+    create_filelist(var["input_path"], abs_filelist_path)
+    abs_f_out_dir = abspath(dirname(var["output_file"]))
+    run(Cmd(`python spot1d_single.py --file_list $(abs_filelist_path) --save_path $(abs_f_out_dir) --device $(var["device"])`, dir=args["spot1d_single_dir"]))
     rm(abs_filelist_path)
 end
 
-work_on_io_files(parsed_args["input"], parsed_args["output"], input_conditions, "csv", commands, parsed_args["skip_error"], "spot1d_single/")
+function main()::Cint
+    parsed_args = parse_commandline()
+    work_on_multiple(parsed_args, commands, 'f'; in_conditions=input_conditions, initialize=initialize!, preprocess=preprocess!)
+    return 0
+end
+
+main()

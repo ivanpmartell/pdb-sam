@@ -1,4 +1,5 @@
 using ArgParse
+include("../common.jl")
 
 function parse_commandline()
     s = ArgParseSettings()
@@ -22,15 +23,21 @@ function parse_commandline()
     return parse_args(s)
 end
 
-parsed_args = parse_commandline()
+input_conditions(a,f) = return has_extension(f, a["extension"])
 
-function input_conditions(in_file, in_path)
-    return endswith(in_file, parsed_args["extension"])
+function preprocess!(args, var)
+    input_dir_out_preprocess!(var, var["input_noext"], "ss2", "s4pred/")
 end
 
-function commands(f_path, f_noext, f_out)
-    s4pred = joinpath(parsed_args["s4pred_dir"], "run_model.py")
-    write("$(f_out)", read(`python $(s4pred) $(f_path)`))
+function commands(args, var)
+    s4pred = joinpath(args["s4pred_dir"], "run_model.py")
+    write("$(var["output_file"])", read(`python $(s4pred) $(var["input_path"])`))
 end
 
-work_on_io_files(parsed_args["input"], parsed_args["output"], input_conditions, "ss2", commands, parsed_args["skip_error"], "s4pred/")
+function main()::Cint
+    parsed_args = parse_commandline()
+    work_on_multiple(parsed_args, commands, 'f'; in_conditions=input_conditions, preprocess=preprocess!)
+    return 0
+end
+
+main()

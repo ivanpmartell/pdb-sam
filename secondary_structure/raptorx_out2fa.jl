@@ -3,6 +3,7 @@ using DelimitedFiles
 using DataFrames
 using FASTX
 using BioSequences
+include("../common.jl")
 
 function parse_commandline()
     s = ArgParseSettings()
@@ -22,10 +23,10 @@ function parse_commandline()
     return parse_args(s)
 end
 
-parsed_args = parse_commandline()
+input_conditions(a,f) = return has_extension(f, a["extension"]) && last(splitdir(dirname(f))) == "raptorx"
 
-function input_conditions(in_file, in_path)
-    return endswith(in_file, parsed_args["extension"]) && last(splitdir(in_path)) == "raptorx"
+function preprocess!(args, var)
+    input_dir_out_preprocess!(var, var["input_noext"], "sspfa")
 end
 
 function commands(f_path, f_noext, f_out)
@@ -44,4 +45,10 @@ function commands(f_path, f_noext, f_out)
     end
 end
 
-work_on_io_files(parsed_args["input"], parsed_args["output"], input_conditions, "sspfa", commands, parsed_args["skip_error"])
+function main()::Cint
+    parsed_args = parse_commandline()
+    work_on_multiple(parsed_args, commands, 'f'; in_conditions=input_conditions, preprocess=preprocess!)
+    return 0
+end
+
+main()

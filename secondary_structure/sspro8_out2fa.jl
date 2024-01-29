@@ -1,6 +1,7 @@
 using ArgParse
 using FASTX
 using BioSequences
+include("../common.jl")
 
 function parse_commandline()
     s = ArgParseSettings()
@@ -29,17 +30,23 @@ function readsspro8(pred_path)
     end
 end
 
-parsed_args = parse_commandline()
+input_conditions(a,f) = return has_extension(f, a["extension"]) && last(splitdir(dirname(f))) == "sspro8"
 
-function input_conditions(in_file, in_path)
-    return endswith(in_file, parsed_args["extension"]) && last(splitdir(in_path)) == "sspro8"
+function preprocess!(args, var)
+    input_dir_out_preprocess!(var, var["input_noext"], "sspfa")
 end
 
-function commands(f_path, f_noext, f_out)
-    seq, pred_str = readsspro8(f_path)
-    FASTA.Writer(open(f_out, "w")) do writer
-        write(writer, FASTA.Record("$(f_noext)_sspro8", LongCharSeq(pred_str)))
+function commands(args, var)
+    seq, pred_str = readsspro8(var["input_path"])
+    FASTA.Writer(open(var["output_file"], "w")) do writer
+        write(writer, FASTA.Record("$(var["input_noext"])_sspro8", LongCharSeq(pred_str)))
     end
 end
 
-work_on_io_files(parsed_args["input"], parsed_args["output"], input_conditions, "sspfa", commands, parsed_args["skip_error"])
+function main()::Cint
+    parsed_args = parse_commandline()
+    work_on_multiple(parsed_args, commands, 'f'; in_conditions=input_conditions, preprocess=preprocess!)
+    return 0
+end
+
+main()

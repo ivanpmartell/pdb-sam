@@ -1,4 +1,5 @@
 using ArgParse
+include("../common.jl")
 
 function parse_commandline()
     s = ArgParseSettings()
@@ -22,16 +23,22 @@ function parse_commandline()
     return parse_args(s)
 end
 
-parsed_args = parse_commandline()
+input_conditions(a,f) = return has_extension(f, a["extension"])
 
-function input_conditions(in_file, in_path)
-    return endswith(in_file, parsed_args["extension"])
+function preprocess!(args, var)
+    input_dir_out_preprocess!(var, var["input_noext"], "ss8", "sspro8/")
 end
 
-function commands(f_path, f_noext, f_out)
-    sspro8 = joinpath(parsed_args["sspro8_dir"], "bin/run_scratch1d_predictors.sh")
-    f_out_path = f_out[1:end-length(ext)]
-    run(`$(sspro8) --input_fasta $(f_path) --output_prefix $(f_out_path)`)
+function commands(args, var)
+    sspro8 = joinpath(args["sspro8_dir"], "bin/run_scratch1d_predictors.sh")
+    f_out_path = remove_ext(var["output_file"])
+    run(`$(sspro8) --input_fasta $(var["input_path"]) --output_prefix $(f_out_path)`)
 end
 
-work_on_io_files(parsed_args["input"], parsed_args["output"], input_conditions, "ss8", commands, parsed_args["skip_error"], "sspro8/")
+function main()::Cint
+    parsed_args = parse_commandline()
+    work_on_multiple(parsed_args, commands, 'f'; in_conditions=input_conditions, preprocess=preprocess!)
+    return 0
+end
+
+main()

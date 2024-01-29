@@ -1,4 +1,5 @@
 using ArgParse
+include("../common.jl")
 
 function parse_commandline()
     s = ArgParseSettings()
@@ -22,24 +23,29 @@ function parse_commandline()
     return parse_args(s)
 end
 
-parsed_args = parse_commandline()
-out_ext = "spot1d"
+input_conditions(a,f) = return has_extension(f, a["extension"])
 
-function input_conditions(in_file, in_path)
-    return endswith(in_file, parsed_args["extension"])
+function preprocess!(args, var)
+    input_dir_out_preprocess!(var, var["input_noext"], "spot1d", "spot1d/")
 end
 
-function commands(f_path, f_noext, f_out)
+function commands(args, var)
     input_ext = "fasta"
-    spot1d_input_dir = joinpath(parsed_args["spot1d_dir"], "inputs/")
-    spot1d_input_file = joinpath(spot1d_input_dir, "$(f_noext).$(input_ext)")
-    spot1d_output_dir = joinpath(parsed_args["spot1d_dir"], "outputs/")
+    spot1d_input_dir = joinpath(args["spot1d_dir"], "inputs/")
+    spot1d_input_file = joinpath(spot1d_input_dir, "$(var["input_noext"]).$(input_ext)")
+    spot1d_output_dir = joinpath(args["spot1d_dir"], "outputs/")
     #Clean input directory to prevent processing of previous inputs
     foreach(rm, filter(endswith(".$(input_ext)"), readdir(spot1d_input_dir,join=true)))
-    cp(f_path, spot1d_input_file, force=true)
-    run(Cmd(`./run_spot1d.sh`, dir=parsed_args["spot1d_dir"]))
+    cp(var["input_path"], spot1d_input_file, force=true)
+    run(Cmd(`./run_spot1d.sh`, dir=args["spot1d_dir"]))
     #Move files from spot1d outputs to output folder once processed. Clean spot1d directory.
-    cp(joinpath(spot1d_output_dir, "$(f_noext).$(out_ext)"), f_out)
+    cp(joinpath(spot1d_output_dir, "$(var["input_noext"]).spot1d"), var["output_file"])
 end
 
-work_on_io_files(parsed_args["input"], parsed_args["output"], input_conditions, out_ext, commands, parsed_args["skip_error"], "spot1d/")
+function main()::Cint
+    parsed_args = parse_commandline()
+    work_on_multiple(parsed_args, commands, 'f'; in_conditions=input_conditions, preprocess=preprocess!)
+    return 0
+end
+
+main()

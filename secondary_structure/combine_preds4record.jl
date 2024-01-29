@@ -1,6 +1,7 @@
 #For each record in a cluster, combine all sspfa and ssfa files into one
 using ArgParse
 using FASTX
+include("../common.jl")
 
 function parse_commandline()
     s = ArgParseSettings()
@@ -23,21 +24,31 @@ function parse_commandline()
     return parse_args(s)
 end
 
-parsed_args = parse_commandline()
+input_conditions(a,f) = has_extension(f, a["dssp_extension"]) || has_extension(f, a["pred_extension"])
 
-function input_conditions(in_file, in_path)
-    return endswith(in_file, parsed_args["dssp_extension"]) || endswith(in_file, parsed_args["pred_extension"])
+function preprocess!(args, var)
+    f_path_split = splitpath(var["input_path"])
+    cluster_dir_index = findlast(x -> startswith(x, "Cluster"), f_path_split)
+    cluster_path = joinpaths(f_path_split[1:cluster_dir_index])
+    var["output_basename"] = f_path_split[cluster_dir_index]
+    input_dir_out_preprocess!(var, var["input_noext"], "rec.res"; basedir=cluster_path)
 end
 
-function commands(f_path, f_out)
-    FASTA.Reader(open(f_path, "r")) do reader
+function commands(args, var)
+    FASTA.Reader(open(var["input_path"], "r")) do reader
         records = collect(reader)
         for rec in records
-            FASTA.Writer(open(f_out, "a")) do writer
+            FASTA.Writer(open(var["output_file"], "a")) do writer
                 write(writer, rec)
             end
         end
     end
 end
 
-work_at_base_path(parsed_args["input"], parsed_args["output"], input_conditions, "Cluster", "input_filename", "recres", commands, parsed_args["skip_error"])
+function main()::Cint
+    parsed_args = parse_commandline()
+    work_on_multiple(parsed_args, commands, 'f'; in_conditions=input_conditions, preprocess=preprocess!)
+    return 0
+end
+
+main()

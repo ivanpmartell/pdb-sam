@@ -1,12 +1,15 @@
 using ArgParse
-using Glob
 using FASTX
 using BioStructures
 using ProgressBars
-
+include("./common.jl")
+#TODO
 function parse_commandline()
     s = ArgParseSettings()
     @add_arg_table! s begin
+        "--skip_error", "-k"
+            help = "Skip files that have previously failed"
+            action = :store_true
         "--input", "-i"
             help = "Input directory. Cleaned cluster alignment files should be here"
             required = true

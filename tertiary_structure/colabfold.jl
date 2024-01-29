@@ -4,7 +4,7 @@ include("../common.jl")
 function parse_commandline()
     s = ArgParseSettings()
     @add_arg_table! s begin
-        "--skip_error", "-s"
+        "--skip_error", "-k"
             help = "Skip files that have previously failed"
             action = :store_true
         "--input", "-i"
@@ -26,21 +26,21 @@ function parse_commandline()
     return parse_args(s)
 end
 
-parsed_args = parse_commandline()
+input_conditions(a,f) = return has_extension(f, a["extension"]) && startswith(last(splitdir(dirname(f))), "Cluster")
 
-function input_conditions(in_file, in_path)
-    return endswith(in_file, parsed_args["extension"]) && startswith(last(splitdir(in_path)), "Cluster")
+function preprocess!(args, var)
+    input_dir_out_preprocess!(var, var["input_noext"], "pdb", "colabfold/")
 end
 
-function commands(f_path, f_noext, f_out)
-    mkpath(parsed_args["temp_output"])
-    run(`$(parsed_args["colabfold_exe"]) --templates --amber --num-relax 1 $(f_path) $(parsed_args["temp_output"])`)
-    for (root_out, dirs_out, files_out) in walkdir(parsed_args["temp_output"])
+function commands(args, var)
+    mkpath(args["temp_output"])
+    run(`$(args["colabfold_exe"]) --templates --amber --num-relax 1 $(var["input_path"]) $(args["temp_output"])`)
+    for (root_out, dirs_out, files_out) in walkdir(args["temp_output"])
         for file_out in files_out
-            if startswith(file_out, f_noext)
+            if startswith(file_out, var["input_noext"])
                 if occursin("relaxed_rank_001", file_out)
                     file_out_path = joinpath(root_out, file_out)
-                    mv(file_out_path, f_out)
+                    mv(file_out_path, var["output_file"])
                     break
                 end
             end
@@ -48,4 +48,10 @@ function commands(f_path, f_noext, f_out)
     end
 end
 
-work_on_io_files(parsed_args["input"], parsed_args["output"], input_conditions, "pdb", commands, parsed_args["skip_error"], "colabfold/")
+function main()::Cint
+    parsed_args = parse_commandline()
+    work_on_multiple(parsed_args, commands, 'f'; in_conditions=input_conditions, preprocess=preprocess!)
+    return 0
+end
+
+main()

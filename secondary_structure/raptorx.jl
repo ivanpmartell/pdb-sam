@@ -1,4 +1,5 @@
 using ArgParse
+include("../common.jl")
 
 function parse_commandline()
     s = ArgParseSettings()
@@ -22,15 +23,21 @@ function parse_commandline()
     return parse_args(s)
 end
 
-parsed_args = parse_commandline()
+input_conditions(a,f) = return has_extension(f, a["extension"])
 
-function input_conditions(in_file, in_path)
-    return endswith(in_file, parsed_args["extension"])
+function preprocess!(args, var)
+    input_dir_out_preprocess!(var, var["input_noext"], "ss8", "raptorx/")
 end
 
-function commands(f_path, f_noext, f_out)
-    raptorx = joinpath(parsed_args["raptorx_dir"], "Predict_Property.sh")
-    run(`$(raptorx) -i $(f_path) -o $(f_out)`)
+function commands(args, var)
+    raptorx = joinpath(args["raptorx_dir"], "Predict_Property.sh")
+    run(`$(raptorx) -i $(var["input_path"]) -o $(var["output_file"])`)
 end
 
-work_on_io_files(parsed_args["input"], parsed_args["output"], input_conditions, "ss8", commands, parsed_args["skip_error"], "raptorx/")
+function main()::Cint
+    parsed_args = parse_commandline()
+    work_on_multiple(parsed_args, commands, 'f'; in_conditions=input_conditions, preprocess=preprocess!)
+    return 0
+end
+
+main()

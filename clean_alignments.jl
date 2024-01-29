@@ -1,11 +1,14 @@
 using ArgParse
-using Glob
 using FASTX
 using BioSequences
+include("./common.jl")
 
 function parse_commandline()
     s = ArgParseSettings()
     @add_arg_table! s begin
+        "--skip_error", "-k"
+            help = "Skip files that have previously failed"
+            action = :store_true
         "--input", "-i"
             help = "Input directory. Cluster alignment files should be here"
             required = true
@@ -15,35 +18,37 @@ function parse_commandline()
     return parse_args(s)
 end
 
-function write_clean_records(str_input, out_path)
+input_conditions(a,f) = return has_extension(f, ".ala")
+
+function preprocess!(args, var)
+    input_dir_out_preprocess!(var, var["input_noext"], "ala")
+end
+
+function commands(args, var)
     unique_seqs = Set()
-    FASTA.Writer(open(out_path, "w")) do writer
+    str_input = read(`sed '/^[^>]/ s/X/-/g' $(var["input_path"])`, String)
+    FASTA.Writer(open(var["output_file"], "w")) do writer
         FASTA.Reader(IOBuffer(str_input)) do reader
             for record in reader
                 if !in(sequence(LongAminoAcidSeq, record), unique_seqs)
                     push!(unique_seqs, sequence(LongAminoAcidSeq, record))
                     write(writer, record)
                 else
-                    println("Removed duplicate sequence $(identifier(record)) on $out_path")
+                    println("Removed duplicate sequence $(identifier(record)) on $(var["output_file"])")
                 end
             end
         end
     end
     if length(unique_seqs) == 1
-        rm(out_path)
-        println("Deleted singleton cluster: $out_path")
+        rm(var["output_file"])
+        println("Deleted singleton cluster: $(var["output_file"])")
     end
 end
 
-parsed_args = parse_commandline()
-if isnothing(parsed_args["output"])
-    parsed_args["output"] = parsed_args["input"]
+function main()::Cint
+    parsed_args = parse_commandline()
+    work_on_multiple(parsed_args, commands, 'f'; in_conditions=input_conditions, preprocess=preprocess!)
+    return 0
 end
-mkpath(parsed_args["output"])
-singleton_clusters = 0
-for f in glob("*.ala", parsed_args["input"])
-    f_path = last(split(f, "/"))
-    out_path = joinpath(parsed_args["output"], f_path)
-    f_out = read(`sed '/^[^>]/ s/X/-/g' $f`, String)
-    write_clean_records(f_out, out_path)
-end
+
+main()

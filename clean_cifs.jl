@@ -2,7 +2,7 @@ using ArgParse
 using ProgressBars
 using FASTX
 using BioSequences
-using Glob
+include("./common.jl")
 
 struct AACoverage
     position::Int64
@@ -10,15 +10,19 @@ struct AACoverage
     coverage_seqs::Set{Int64}
 end
 
-#TODO: Add file to look for instead of just cif_sequences.fa
 function parse_commandline()
     s = ArgParseSettings()
     @add_arg_table! s begin
+        "--skip_error", "-k"
+            help = "Skip files that have previously failed"
+            action = :store_true
         "--input", "-i"
             help = "Input directory. Cluster containing cif files and aligned sequences should be here"
             required = true
         "--output", "-o"
             help = "Output directory. Cleaned cif clusters with unique variants will be saved here. Ignore to write files in input directory"
+        "--file_name", "-f"
+            help = "Filename to search inside the cluster directory"
     end
     return parse_args(s)
 end
@@ -87,6 +91,8 @@ function get_indispensable_seqs(aa_coverage, seqs_length)
     return indispensable_seqs
 end
 
+cif_ext(f) = return has_extension(f, ".cif")
+
 function keep_indispensable_seqs(records, indispensable_seqs, file_out, file_in)
     total_recs = length(records)
     keepat!(records, sort!(collect(indispensable_seqs)))
@@ -113,9 +119,9 @@ function keep_indispensable_seqs(records, indispensable_seqs, file_out, file_in)
         end
         if !(file_in == file_out)
             #if output folder is different then copy indispensable cif into output folder
-            for cif_path in glob("*.cif", dirname(file_in))
-                cif_file = basename(cif_path)
-                if in(replace(cif_file, r".cif$"=>""), indispensable_recs)
+            for cif_path in process_files(dirname(file_in), cif_ext)
+                cif_file, cif_ext = basename_ext(cif_path)
+                if cif_file in indispensable_recs
                     output_filepath = joinpath(dirname(file_out), cif_file)
                     ensure_new_file(output_filepath)
                     cp(cif_path, output_filepath, force=true)
@@ -123,9 +129,9 @@ function keep_indispensable_seqs(records, indispensable_seqs, file_out, file_in)
             end
         else
             #if output folder == input folder then delete unnecessary cif
-            for cif_path in glob("*.cif", dirname(file_in))
-                cif_file = basename(cif_path)
-                if in(replace(cif_file, r".cif$"=>""), indispensable_recs)
+            for cif_path in process_files(dirname(file_in), cif_ext)
+                cif_file, cif_ext = basename_ext(cif_path)
+                if cif_file in indispensable_recs
                     rm(cif_path)
                 end
             end
@@ -140,9 +146,9 @@ function keep_indispensable_seqs(records, indispensable_seqs, file_out, file_in)
         end
     end
     #read .fa and remove unnecessary ids
-    non_aligned_input = replace(file_in, r".ala$"=>"")
+    non_aligned_input = remove_ext(file_in)
     if isfile(non_aligned_input)
-        non_aligned_output = replace(file_out, r".ala$"=>"")
+        non_aligned_output = remove_ext(file_out)
         non_aligned_records = Vector{FASTX.FASTA.Record}()
         FASTA.Reader(open(non_aligned_input)) do reader
             non_aligned_records = collect(reader)
@@ -158,39 +164,30 @@ function keep_indispensable_seqs(records, indispensable_seqs, file_out, file_in)
     end
 end
 
-function ensure_new_file(f)
-    if !(isfile(f))
-        mkpath(dirname(f))
-        touch(f)
-    else
-        rm(f)
-        ensure_new_file(f)
-    end
+input_conditions(a,f) = return basename(f) == a["file_name"]
+
+function preprocess!(args, var)
+    input_dir_out_preprocess!(var, var["input_noext"], "ala")
 end
 
-parsed_args = parse_commandline()
-if isnothing(parsed_args["output"])
-    parsed_args["output"] = parsed_args["input"]
-end
-mkpath(parsed_args["output"])
-for (root, dirs, files) in ProgressBar(walkdir(parsed_args["input"]))
-    for f in files
-        if f == "nogap_cif_sequences.fa.ala"
-            f_path = joinpath(root,f)
-            records = Vector{FASTX.FASTA.Record}()
-            FASTA.Reader(open(f_path)) do reader
-                records = collect(reader)
-            end
-            seqs_length = length(sequence(LongAminoAcidSeq, records[1]))
-            aa_coverage = get_seq_coverage(records, seqs_length)
-            # Find records that do not contribute to the mutations (gap or all mutations in seq are contained in another one)
-            #Remove if covered previously TODO: also sort by gap count
-            indispensable_seqs = get_indispensable_seqs(aa_coverage, seqs_length)
-            #TODO: remove unnecessary records (remake files if they change and delete according cif files)
-            f_path = joinpath(root,f)
-            f_path_no_root_folder = lstrip(replace(f_path, Regex("^$(parsed_args["input"])")=>""), '/')
-            f_out_path = joinpath(parsed_args["output"], f_path_no_root_folder)
-            keep_indispensable_seqs(records, indispensable_seqs, f_out_path, f_path)
-        end
+function commands(args, var)
+    records = Vector{FASTX.FASTA.Record}()
+    FASTA.Reader(open(var["input_path"])) do reader
+        records = collect(reader)
     end
+    seqs_length = length(sequence(LongAminoAcidSeq, records[1]))
+    aa_coverage = get_seq_coverage(records, seqs_length)
+    # Find records that do not contribute to the mutations (gap or all mutations in seq are contained in another one)
+    #Remove if covered previously TODO: also sort by gap count
+    indispensable_seqs = get_indispensable_seqs(aa_coverage, seqs_length)
+    #TODO: remove unnecessary records (remake files if they change and delete according cif files)
+    keep_indispensable_seqs(records, indispensable_seqs, var["output_file"], var["input_path"])
 end
+
+function main()::Cint
+    parsed_args = parse_commandline()
+    work_on_multiple(parsed_args, commands, 'f'; in_conditions=input_conditions, preprocess=preprocess!)
+    return 0
+end
+
+main()

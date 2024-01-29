@@ -9,7 +9,7 @@ ENV["GKSwstype"]="nul"
 function parse_commandline()
     s = ArgParseSettings()
     @add_arg_table! s begin
-        "--skip_error", "-s"
+        "--skip_error", "-k"
             help = "Skip files that have previously failed"
             action = :store_true
         "--input", "-i"
@@ -25,8 +25,6 @@ function parse_commandline()
     end
     return parse_args(s)
 end
-
-parsed_args = parse_commandline()
 
 #Read mutation file (get res numbers)
 function read_mutation_file(mutation_f_path)
@@ -47,16 +45,14 @@ function read_mutation_file(mutation_f_path)
     return mutations_dict
 end
 
-function input_conditions(in_file, in_path)
-    return endswith(in_file, parsed_args["extension"])
-end
+input_conditions(a,f) = return has_extension(f, a["extension"])
 
-function commands(f_path) #, f_noext, f_out
-    parent_dir = dirname(dirname(f_path))
+function commands(args, var)
+    parent_dir = dirname(dirname(var["input_path"]))
     if startswith(last(splitdir(parent_dir)), "Cluster")
-        struc = read(f_path, PDB)
+        struc = read(var["input_path"], PDB)
         calphas = collectatoms(struc, calphaselector)
-        mut_file = joinpath(parent_dir, parsed_args["mut_file"])
+        mut_file = joinpath(parent_dir, args["mut_file"])
         mutations =  read_mutation_file(mut_file)#dict of mutation from other file
         #Obtain vicinity of each mutation (check angstrom distance to use)
         vicinity = Dict()
@@ -84,9 +80,15 @@ function commands(f_path) #, f_noext, f_out
                 label="",
             )
             plot!(resnumber.(first.(vicinity[mut_pos])), last.(vicinity[mut_pos]), seriestype=:scatter, label="Cα")
-            savefig(p, "junk_test/plotting_$(last(splitdir(f_path)))_$(mut_pos).png")
+            savefig(p, "plots/$(last(splitdir(var["input_path"])))_$(mut_pos).png")
         end
     end
 end
 
-work_on_input_files(parsed_args["input"], input_conditions, commands, parsed_args["skip_error"])
+function main()::Cint
+    parsed_args = parse_commandline()
+    work_on_multiple(parsed_args, commands, 'f'; in_conditions=input_conditions)
+    return 0
+end
+
+main()

@@ -4,7 +4,7 @@ include("../common.jl")
 function parse_commandline()
     s = ArgParseSettings()
     @add_arg_table! s begin
-        "--skip_error", "-s"
+        "--skip_error", "-k"
             help = "Skip files that have previously failed"
             action = :store_true
         "--input", "-i"
@@ -23,24 +23,29 @@ function parse_commandline()
     return parse_args(s)
 end
 
-parsed_args = parse_commandline()
+input_conditions(a,f) = return has_extension(f, a["extension"]) && startswith(last(splitdir(dirname(f))), "Cluster")
 
-function input_conditions(in_file, in_path)
-    return endswith(in_file, parsed_args["extension"]) && startswith(last(splitdir(in_path)), "Cluster")
+function preprocess!(args, var)
+    input_dir_out_preprocess!(var, var["input_noext"], "pdb", "esmfold/")
 end
 
-function commands(f_path, f_noext, f_out)
-    f_out_dir = dirname(f_out)
-    run(`$(parsed_args["esmfold_exe"]) -i $(f_path) -o $(f_out_dir) --cpu-offload`)
-    for (root_out, dirs_out, files_out) in walkdir(f_out_dir)
+function commands(args, var)
+    run(`$(args["esmfold_exe"]) -i $(var["input_path"]) -o $(var["abs_output_dir"]) --cpu-offload`)
+    for (root_out, dirs_out, files_out) in walkdir(var["abs_output_dir"])
         for file_out in files_out
-            if startswith(file_out, f_noext)
+            if startswith(file_out, var["input_noext"])
                 file_out_path = joinpath(root_out, file_out)
-                mv(file_out_path, f_out)
+                mv(file_out_path, var["output_file"])
                 break
             end
         end
     end
 end
 
-work_on_io_files(parsed_args["input"], parsed_args["output"], input_conditions, "pdb", commands, parsed_args["skip_error"], "esmfold/")
+function main()::Cint
+    parsed_args = parse_commandline()
+    work_on_multiple(parsed_args, commands, 'f'; in_conditions=input_conditions, preprocess=preprocess!)
+    return 0
+end
+
+main()

@@ -1,5 +1,4 @@
 using ArgParse
-using ProgressBars
 using DelimitedFiles
 using DataFrames
 using FASTX
@@ -122,7 +121,7 @@ function fix_dssp_formatting_errors(cif_path, dssp_out_path)
         end
     end
     (tmppath, tmpio) = mktemp()
-    for line in ProgressBar(eachline(dssp_out_path))
+    for line in eachline(dssp_out_path)
         if contains(line, '\'')
             for (line_num, fixes) in fix_list
                 clean_line_to_fix = replace(lines_to_fix[line_num], " "=>"",  "\""=>"", "?"=>"")
@@ -184,16 +183,21 @@ function convert_dssp(f_noext, f_path, f_out_path, seq_file, retry)
     end
 end
 
-parsed_args = parse_commandline()
+input_conditions(a,f) = return has_extension(f, a["extension"])
 
-function input_conditions(in_file, in_path)
-    return endswith(in_file, parsed_args["extension"])
+function preprocess!(args, var)
+    input_dir_out_preprocess!(var, var["input_noext"], "ssfa")
 end
 
-function commands(f_path, f_noext, f_out)
-    f_out_dir = dirname(f_out)
-    sequence_file = joinpath(f_out_dir, "$(f_noext).fa")
-    convert_dssp(f_noext, f_path, f_out, sequence_file, parsed_args["fix"])
+function commands(args, var)
+    sequence_file = joinpath(var["abs_output_dir"], "$(var["input_noext"]).fa")
+    convert_dssp(var["input_noext"], var["input_path"], var["output_file"], sequence_file, args["fix"])
 end
 
-work_on_io_files(parsed_args["input"], parsed_args["output"], input_conditions, "ssfa", commands, parsed_args["skip_error"])
+function main()::Cint
+    parsed_args = parse_commandline()
+    work_on_multiple(parsed_args, commands, 'f'; in_conditions=input_conditions, preprocess=preprocess!)
+    return 0
+end
+
+main()

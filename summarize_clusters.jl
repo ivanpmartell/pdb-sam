@@ -2,10 +2,14 @@ using ArgParse
 using ProgressBars
 using FASTX
 using BioSequences
-
+include("./common.jl")
+#TODO
 function parse_commandline()
     s = ArgParseSettings()
     @add_arg_table! s begin
+        "--skip_error", "-k"
+            help = "Skip files that have previously failed"
+            action = :store_true
         "--input", "-i"
             help = "Directory with clusters containing normalized 2d structure and predictions"
             required = true

@@ -1,12 +1,12 @@
 using ArgParse
-using Glob
 using ProgressBars
 using BioSequences
 using DataFrames
 using FASTX
 using LogExpFunctions: xlogy
 using SparseArrays
-
+include("./common.jl")
+#TODO
 struct Mutation
     from::String
     position::Int64
@@ -24,6 +24,9 @@ end
 function parse_commandline()
     s = ArgParseSettings()
     @add_arg_table! s begin
+        "--skip_error", "-k"
+            help = "Skip files that have previously failed"
+            action = :store_true
         "--input", "-i"
             help = "Input directory. Cluster folders with summary files required"
             required = true

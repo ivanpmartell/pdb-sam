@@ -1,12 +1,15 @@
 using ArgParse
-using Glob
 using FASTX
 using BioSequences
 using ProgressBars
-
+include("./common.jl")
+#TODO
 function parse_commandline()
     s = ArgParseSettings()
     @add_arg_table! s begin
+        "--skip_error", "-k"
+            help = "Skip files that have previously failed"
+            action = :store_true
         "--input", "-i"
             help = "Input directory"
             required = true
@@ -72,7 +75,7 @@ function separate_records(in_path)
                     mkpath(f_out_path)
                     out_file = joinpath(f_out_path, "$(basename(record))")
                     cp(record, out_file)
-                    record_cif = replace(record, r".fa$"=>".cif")
+                    record_cif = "$(remove_ext(record)).cif"
                     out_cif = joinpath(f_out_path, "$(basename(record_cif))")
                     cp(record_cif, out_cif)
                 end

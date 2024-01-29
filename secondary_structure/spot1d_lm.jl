@@ -1,4 +1,5 @@
 using ArgParse
+include("../common.jl")
 
 function parse_commandline()
     s = ArgParseSettings()
@@ -52,20 +53,26 @@ function parse_gpu(device)
     end
 end
 
-parsed_args = parse_commandline()
+input_conditions(a,f) = return has_extension(f, a["extension"])
 
-function input_conditions(in_file, in_path)
-    return endswith(in_file, parsed_args["extension"])
+function preprocess!(args, var)
+    input_dir_out_preprocess!(var, var["input_noext"], "csv", "spot1d_lm/")
 end
 
-function commands(f_path, f_noext, f_out)
-    spot1d_lm_output_dir = joinpath(parsed_args["spot1d_lm_dir"], "results/")
+function commands(args, var)
+    spot1d_lm_output_dir = joinpath(args["spot1d_lm_dir"], "results/")
     abs_filelist_path = abspath("tmp_s1dlm_filelist.txt")
-    create_filelist(f_path, abs_filelist_path)
-    run(Cmd(`./run_SPOT-1D-LM.sh $(abs_filelist_path) $(parse_gpu(parsed_args["gpu_device_esm"])) $(parse_gpu(parsed_args["gpu_device_pt"])) $(parse_gpu(parsed_args["gpu_device_lm"]))`, dir=parsed_args["spot1d_lm_dir"]))
+    create_filelist(var["input_path"], abs_filelist_path)
+    run(Cmd(`./run_SPOT-1D-LM.sh $(abs_filelist_path) $(parse_gpu(args["gpu_device_esm"])) $(parse_gpu(args["gpu_device_pt"])) $(parse_gpu(args["gpu_device_lm"]))`, dir=args["spot1d_lm_dir"]))
     #Move files from spot1d outputs to output folder once processed. Clean spot1d directory.
-    cp(joinpath(spot1d_lm_output_dir, "$(f_noext).csv"), f_out)
+    cp(joinpath(spot1d_lm_output_dir, "$(var["input_noext"]).csv"), var["output_file"])
     rm(abs_filelist_path)
 end
 
-work_on_io_files(parsed_args["input"], parsed_args["output"], input_conditions, "csv", commands, parsed_args["skip_error"], "spot1d_lm/")
+function main()::Cint
+    parsed_args = parse_commandline()
+    work_on_multiple(parsed_args, commands, 'f'; in_conditions=input_conditions, preprocess=preprocess!)
+    return 0
+end
+
+main()

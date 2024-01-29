@@ -4,7 +4,7 @@ include("../common.jl")
 function parse_commandline()
     s = ArgParseSettings()
     @add_arg_table! s begin
-        "--skip_error", "-s"
+        "--skip_error", "-k"
             help = "Skip files that have previously failed"
             action = :store_true
         "--input", "-i"
@@ -41,40 +41,46 @@ function parse_commandline()
     return parse_args(s)
 end
 
-parsed_args = parse_commandline()
-gpu_usage = ``
-if parsed_args["use_gpu"]
-    gpu_usage = `-gG`
-end
-parafold_args = ``
-if parsed_args["msa_only"] && parsed_args["predict_only"]
-    throw(ArgumentError("Choose MSA features only or Predict only. To do both, ignore both flags."))
-elseif parsed_args["msa_only"]
-    parafold_args = `-f`
-elseif parsed_args["predict_only"]
-    parafold_args = `-s`
+input_conditions(a,f) = return has_extension(f, a["extension"]) && startswith(last(splitdir(dirname(f))), "Cluster")
+
+function preprocess!(args, var)
+    input_dir_out_preprocess!(var, var["input_noext"], "pdb", "af2/")
 end
 
-function input_conditions(in_file, in_path)
-    return endswith(in_file, parsed_args["extension"]) && startswith(last(splitdir(in_path)), "Cluster")
-end
-
-function commands(f_path, f_noext, f_out)
+function commands(args, var)
     mkpath(parsed_args["temp_output"])
-    features_file = joinpath(parsed_args["temp_output"], "$(f_noext)/features.pkl")
+    features_file = joinpath(parsed_args["temp_output"], "$(var["input_noext"])/features.pkl")
     if isfile("$(f_out).pkl")
         if parsed_args["msa_only"]
             return 0
         end
-        mkpath(joinpath(parsed_args["temp_output"], f_noext))
+        mkpath(joinpath(parsed_args["temp_output"], var["input_noext"]))
         mv("$(f_out).pkl", features_file)
     end
-    run(Cmd(`./run_alphafold.sh -d $(parsed_args["data_dir"]) -o $(parsed_args["temp_output"]) -p monomer_ptm -i $(f_path) -m model_1,model_2,model_3,model_4,model_5 -t 2020-05-14 $(gpu_usage) $(parafold_args)`, dir=parsed_args["parafold_dir"]))
+    run(Cmd(`./run_alphafold.sh -d $(parsed_args["data_dir"]) -o $(parsed_args["temp_output"]) -p monomer_ptm -i $(var["input_path"]) -m model_1,model_2,model_3,model_4,model_5 -t 2020-05-14 $(gpu_usage) $(parafold_args)`, dir=parsed_args["parafold_dir"]))
     if parsed_args["msa_only"]
-        cp(features_file, "$(f_out).pkl")
+        cp(features_file, "$(var["output_file"]).pkl")
     else
-        cp(joinpath(parsed_args["temp_output"], "$(f_noext)/ranked_0.pdb"), f_out)
+        cp(joinpath(parsed_args["temp_output"], "$(var["input_noext"])/ranked_0.pdb"), f_out)
     end
 end
 
-work_on_io_files(parsed_args["input"], parsed_args["output"], input_conditions, "pdb", commands, parsed_args["skip_error"], "af2/")
+function main()::Cint
+    parsed_args = parse_commandline()
+    gpu_usage = ``
+    if parsed_args["use_gpu"]
+        gpu_usage = `-gG`
+    end
+    parafold_args = ``
+    if parsed_args["msa_only"] && parsed_args["predict_only"]
+        throw(ArgumentError("Choose MSA features only or Predict only. To do both, ignore both flags."))
+    elseif parsed_args["msa_only"]
+        parafold_args = `-f`
+    elseif parsed_args["predict_only"]
+        parafold_args = `-s`
+    end
+    work_on_multiple(parsed_args, commands, 'f'; in_conditions=input_conditions, preprocess=preprocess!)
+    return 0
+end
+
+main()

@@ -1,11 +1,11 @@
 using ArgParse
-using Glob
 using ProgressBars
 using BioSequences
 using DataFrames
 using FASTX
 using Statistics
-
+include("./common.jl")
+#TODO
 ACCURACY_STR = "Accuracy"
 SOV99_STR = "SOV_99"
 SOVREF_STR = "SOV_refine"
@@ -18,6 +18,9 @@ end
 function parse_commandline()
     s = ArgParseSettings()
     @add_arg_table! s begin
+        "--skip_error", "-k"
+            help = "Skip files that have previously failed"
+            action = :store_true
         "--input", "-i"
             help = "Input directory. Cluster folders with summary files required"
             required = true

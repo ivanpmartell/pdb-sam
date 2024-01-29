@@ -5,7 +5,7 @@ include("../common.jl")
 function parse_commandline()
     s = ArgParseSettings()
     @add_arg_table! s begin
-        "--skip_error", "-s"
+        "--skip_error", "-k"
             help = "Skip files that have previously failed"
             action = :store_true
         "--input", "-i"
@@ -22,23 +22,36 @@ function parse_commandline()
     return parse_args(s)
 end
 
-parsed_args = parse_commandline()
+input_conditions(a,f) = has_extension(f, a["extension"])
 
-function input_conditions(in_file, in_path)
-    return endswith(in_file, parsed_args["extension"])
+function initialize!(args, var)
+    var["undef_coord_files"] = 0
+    var["error_file"] = joinpath(var["abs_input"], "undef.err")
 end
 
-function commands(f_path)
-    struc = read(f_path, PDB)
+function commands(args, var)
+    struc = read(var["input_path"], PDB)
     atoms = collectatoms(struc)
     for atom in atoms
         if any(isnan, coords(atom))
-            if parsed_args["clean"]
-                rm(f_path)
+            if args["clean"]
+                rm(var["input_path"])
             end
-            throw(Exception("Atoms with undefined coordinates found in file.")) 
+            var["undef_coord_files"] += 1
+            throw(ErrorException("Undefined coordinates: $(var["input_path"])"))
         end
     end
 end
 
-work_on_input_files(parsed_args["input"], input_conditions, commands, parsed_args["skip_error"])
+function finalize(args, var)
+    println("Atoms with undefined coordinates found in $(var["undef_coord_files"]) files.")
+
+end
+
+function main()::Cint
+    parsed_args = parse_commandline()
+    work_on_multiple(parsed_args, commands, 'f'; in_conditions=input_conditions, initialize=initialize!, finalize=finalize)
+    return 0
+end
+
+main()

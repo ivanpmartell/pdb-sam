@@ -1,8 +1,8 @@
 #For each tool prediction in a cluster, combine all sspfa and ssfa files into one
-#TODO
 using ArgParse
 using ProgressBars
 using FASTX
+include("../common.jl")
 
 function parse_commandline()
     s = ArgParseSettings()
@@ -25,66 +25,59 @@ function parse_commandline()
     return parse_args(s)
 end
 
-parsed_args = parse_commandline()
+input_dir_conditions(a,d) = return startswith(d, "Cluster")
+input_conditions(a,f) = return has_extension(f, a["dssp_extension"]) || has_extension(f, a["pred_extension"])
 
-for (root, dirs, files) in ProgressBar(walkdir(parsed_args["input"]))
-    for dir in dirs
-        if startswith(dir, "Cluster")
-            cluster_dir = joinpath(root, dir)
-            dssp_res_files = Set{String}()
-            pred_res_files = Dict{String, Set{String}}()
-            cluster_tool_dirs = Dict{String, String}()
-            for (clstr_root, clstr_dirs, clstr_files) in walkdir(cluster_dir)
-                for f in clstr_files
-                    f_noext, f_ext = splitext(f)
-                    if f_ext == parsed_args["dssp_extension"]
-                        f_path = joinpath(clstr_root, f)
-                        push!(dssp_res_files, f_path)
-                    elseif f_ext == parsed_args["pred_extension"]
-                        f_path = joinpath(clstr_root, f)
-                        tool = last(splitdir(clstr_root))
-                        try
-                            push!(pred_res_files[tool], f_path)
-                        catch e
-                            if isa(e, KeyError)
-                                pred_res_files[tool] = Set([f_path])
-                            else
-                                print("Unexpected error occured: $e")
-                                exit(1)
-                            end
-                        end
-                        
-                    end
-                end
-                for clstr_dir in clstr_dirs
-                    cluster_tool_dirs[clstr_dir] = joinpath(clstr_root, clstr_dir)
+function preprocess!(args, var)
+    input_dir_out_preprocess!(var, var["input_noext"], "ssfa")
+end
+
+function commands(args, var)
+    dssp_res_files = Set{String}()
+    pred_res_files = Dict{String, Set{String}}()
+    cluster_tool_dirs = Dict{String, String}()
+    for f in process_files(var["input_path"], input_conditions, args, true)
+        f_path = joinpath(var["input_path"], f)
+        f_noext, f_ext = basename_ext(f)
+        if f_ext == parsed_args["dssp_extension"]
+            push!(dssp_res_files, f_path)
+        elseif f_ext == parsed_args["pred_extension"]
+            tool = last(splitdir(f))
+            try
+                push!(pred_res_files[tool], f_path)
+            catch e
+                if isa(e, KeyError)
+                    pred_res_files[tool] = Set([f_path])
+                else
+                    print("Unexpected error occured: $e")
+                    exit(1)
                 end
             end
-            for (tool, tool_dir) in cluster_tool_dirs
-                if tool in keys(pred_res_files)
-                    f_path_no_root_folder = lstrip(replace(cluster_dir, Regex("^$(parsed_args["input"])")=>""), '/')
-                    f_out_dir = joinpath(parsed_args["output"], f_path_no_root_folder)
-                    f_out_path = joinpath(f_out_dir, "$(tool).toolres")
-                    if !isfile(f_out_path)
-                        mkpath(f_out_dir)
-                        for f_path in dssp_res_files
-                            FASTA.Reader(open(f_path, "r")) do reader
-                                records = collect(reader)
-                                for rec in records
-                                    FASTA.Writer(open(f_out_path, "a")) do writer
-                                        write(writer, rec)
-                                    end
-                                end
+        end
+    end
+    for tool in process_directories(var["input_path"], default_input_condition, args, false)
+        tool_dir = joinpath(var["input_path"], tool)
+        if tool in keys(pred_res_files)
+            f_out_dir = keep_input_dir_structure(var["abs_input"], var["abs_output"], var["input_path"], "")
+            f_out_path = joinpath(f_out_dir, "$(tool).toolres")
+            if !isfile(f_out_path)
+                mkpath(f_out_dir)
+                for f_path in dssp_res_files
+                    FASTA.Reader(open(f_path, "r")) do reader
+                        records = collect(reader)
+                        for rec in records
+                            FASTA.Writer(open(f_out_path, "a")) do writer
+                                write(writer, rec)
                             end
                         end
-                        for f_path in pred_res_files[tool]
-                            FASTA.Reader(open(f_path, "r")) do reader
-                                records = collect(reader)
-                                for rec in records
-                                    FASTA.Writer(open(f_out_path, "a")) do writer
-                                        write(writer, rec)
-                                    end
-                                end
+                    end
+                end
+                for f_path in pred_res_files[tool]
+                    FASTA.Reader(open(f_path, "r")) do reader
+                        records = collect(reader)
+                        for rec in records
+                            FASTA.Writer(open(f_out_path, "a")) do writer
+                                write(writer, rec)
                             end
                         end
                     end
@@ -93,3 +86,11 @@ for (root, dirs, files) in ProgressBar(walkdir(parsed_args["input"]))
         end
     end
 end
+
+function main()::Cint
+    parsed_args = parse_commandline()
+    work_on_multiple(parsed_args, commands, 'd'; in_conditions=input_dir_conditions, preprocess=preprocess!)
+    return 0
+end
+
+main()
