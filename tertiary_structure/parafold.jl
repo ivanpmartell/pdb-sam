@@ -43,6 +43,21 @@ end
 
 input_conditions(a,f) = return has_extension(f, a["extension"]) && startswith(last(splitdir(dirname(f))), "Cluster")
 
+function initialize!(args, var)
+    var["gpu_usage"] = ``
+    if args["use_gpu"]
+        var["gpu_usage"] = `-gG`
+    end
+    var["parafold_args"] = ``
+    if args["msa_only"] && args["predict_only"]
+        throw(ArgumentError("Choose MSA features only or Predict only. To do both, ignore both flags."))
+    elseif args["msa_only"]
+        var["parafold_args"] = `-f`
+    elseif args["predict_only"]
+        var["parafold_args"] = `-s`
+    end
+end
+
 function preprocess!(args, var)
     input_dir_out_preprocess!(var, var["input_noext"]; fext="pdb", cdir="af2/")
 end
@@ -50,35 +65,23 @@ end
 function commands(args, var)
     mkpath(args["temp_output"])
     features_file = joinpath(args["temp_output"], "$(var["input_noext"])/features.pkl")
-    if isfile("$(f_out).pkl")
+    if isfile("$(var["output_file"]).pkl")
         if args["msa_only"]
             return 0
         end
         mkpath(joinpath(args["temp_output"], var["input_noext"]))
-        mv("$(f_out).pkl", features_file)
+        mv("$(var["output_file"]).pkl", features_file)
     end
     run(Cmd(`./run_alphafold.sh -d $(args["data_dir"]) -o $(args["temp_output"]) -p monomer_ptm -i $(var["input_path"]) -m model_1,model_2,model_3,model_4,model_5 -t 2020-05-14 $(gpu_usage) $(parafold_args)`, dir=args["parafold_dir"]))
     if args["msa_only"]
         cp(features_file, "$(var["output_file"]).pkl")
     else
-        cp(joinpath(args["temp_output"], "$(var["input_noext"])/ranked_0.pdb"), f_out)
+        cp(joinpath(args["temp_output"], "$(var["input_noext"])/ranked_0.pdb"), var["output_file"])
     end
 end
 
 function main()::Cint
     parsed_args = parse_commandline()
-    gpu_usage = ``
-    if parsed_args["use_gpu"]
-        gpu_usage = `-gG`
-    end
-    parafold_args = ``
-    if parsed_args["msa_only"] && parsed_args["predict_only"]
-        throw(ArgumentError("Choose MSA features only or Predict only. To do both, ignore both flags."))
-    elseif parsed_args["msa_only"]
-        parafold_args = `-f`
-    elseif parsed_args["predict_only"]
-        parafold_args = `-s`
-    end
     work_on_multiple(parsed_args, commands, 'f'; in_conditions=input_conditions, preprocess=preprocess!)
     return 0
 end
