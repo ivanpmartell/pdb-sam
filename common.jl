@@ -60,7 +60,7 @@ end
 function work_on_multiple(script_args, run_cmds, input_type; in_conditions=default_input_condition, initialize=default_var_procedure, preprocess=default_var_procedure, finalize=default_var_procedure, runtime_unit="min", nested=true)
     default_output_arg!(script_args)
     var = Dict()
-    var["abs_input"], var["abs_output"] = no_output_equals_input(input, output)
+    var["abs_input"], var["abs_output"] = no_output_equals_input(script_args["input"], script_args["output"])
     if !isfile(var["abs_input"])
         throw(ErrorException("Input is not a directory"))
     end
