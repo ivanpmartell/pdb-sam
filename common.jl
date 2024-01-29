@@ -1,6 +1,6 @@
 using Dates
 
-function monitor_process(script_args, commands, input_conditions=default_input_condition, initialize=default_var_procedure, preprocess=default_var_procedure, finalize=default_var_procedure, var=Dict(), input_type='f', nested=false, skip_error=false, runtime_unit="min")
+function monitor_process(script_args, commands; input_conditions=default_input_condition, initialize=default_var_procedure, preprocess=default_var_procedure, finalize=default_var_procedure, var=Dict(), input_type='f', nested=false, skip_error=false, runtime_unit="min")
     start_time = now()
     initialize(script_args, var) #Define abs_input, abs_output
     print_log(start_time, "Starting work on $(var["abs_input"])")
@@ -45,7 +45,7 @@ function monitor_process(script_args, commands, input_conditions=default_input_c
     end
 end
 
-function work_on_single(script_args, run_cmds, in_conditions=default_input_condition, initialize=default_var_procedure, preprocess=default_var_procedure, finalize=default_var_procedure, runtime_unit="min")
+function work_on_single(script_args, run_cmds; in_conditions=default_input_condition, initialize=default_var_procedure, preprocess=default_var_procedure, finalize=default_var_procedure, runtime_unit="min")
     default_output_arg!(script_args)
     var = Dict()
     var["abs_input"], var["abs_output"] = get_abspaths(script_args["input"], script_args["output"])
@@ -54,17 +54,17 @@ function work_on_single(script_args, run_cmds, in_conditions=default_input_condi
     end
     var["output_file"] = var["abs_output"]
     var["abs_output_dir"] = dirname(var["abs_output"])
-    monitor_process(run_cmds; input_conditions=in_conditions, initialize=initialize, preprocess=preprocess, finalize=finalize, var=var, skip_error=script_args["skip_error"], runtime_unit=runtime_unit)
+    monitor_process(script_args, run_cmds; input_conditions=in_conditions, initialize=initialize, preprocess=preprocess, finalize=finalize, var=var, skip_error=script_args["skip_error"], runtime_unit=runtime_unit)
 end
 
-function work_on_multiple(script_args, run_cmds, input_type, in_conditions=default_input_condition, initialize=default_var_procedure, preprocess=default_var_procedure, finalize=default_var_procedure, runtime_unit="min", nested=true)
+function work_on_multiple(script_args, run_cmds, input_type; in_conditions=default_input_condition, initialize=default_var_procedure, preprocess=default_var_procedure, finalize=default_var_procedure, runtime_unit="min", nested=true)
     default_output_arg!(script_args)
     var = Dict()
     var["abs_input"], var["abs_output"] = no_output_equals_input(input, output)
     if !isfile(var["abs_input"])
         throw(ErrorException("Input is not a directory"))
     end
-    monitor_process(run_cmds; input_conditions=in_conditions, initialize=initialize, preprocess=preprocess, finalize=finalize, var=var, input_type=input_type, nested=nested, skip_error=script_args["skip_error"], runtime_unit=runtime_unit)
+    monitor_process(script_args, run_cmds; input_conditions=in_conditions, initialize=initialize, preprocess=preprocess, finalize=finalize, var=var, input_type=input_type, nested=nested, skip_error=script_args["skip_error"], runtime_unit=runtime_unit)
 end
 
 function default_output_arg!(parsed_arguments)
@@ -262,7 +262,7 @@ function no_output_equals_input(input, output)
     return get_abspaths(input, output)
 end
 
-function input_dir_out_preprocess!(var, fname, fext="", cdir="", basedir="")
+function input_dir_out_preprocess!(var, fname; fext="", cdir="", basedir="")
     if isempty(basedir)
         basedir = dirname(var["input_file"])
     end

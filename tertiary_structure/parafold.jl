@@ -48,20 +48,20 @@ function preprocess!(args, var)
 end
 
 function commands(args, var)
-    mkpath(parsed_args["temp_output"])
-    features_file = joinpath(parsed_args["temp_output"], "$(var["input_noext"])/features.pkl")
+    mkpath(args["temp_output"])
+    features_file = joinpath(args["temp_output"], "$(var["input_noext"])/features.pkl")
     if isfile("$(f_out).pkl")
-        if parsed_args["msa_only"]
+        if args["msa_only"]
             return 0
         end
-        mkpath(joinpath(parsed_args["temp_output"], var["input_noext"]))
+        mkpath(joinpath(args["temp_output"], var["input_noext"]))
         mv("$(f_out).pkl", features_file)
     end
-    run(Cmd(`./run_alphafold.sh -d $(parsed_args["data_dir"]) -o $(parsed_args["temp_output"]) -p monomer_ptm -i $(var["input_path"]) -m model_1,model_2,model_3,model_4,model_5 -t 2020-05-14 $(gpu_usage) $(parafold_args)`, dir=parsed_args["parafold_dir"]))
-    if parsed_args["msa_only"]
+    run(Cmd(`./run_alphafold.sh -d $(args["data_dir"]) -o $(args["temp_output"]) -p monomer_ptm -i $(var["input_path"]) -m model_1,model_2,model_3,model_4,model_5 -t 2020-05-14 $(gpu_usage) $(parafold_args)`, dir=args["parafold_dir"]))
+    if args["msa_only"]
         cp(features_file, "$(var["output_file"]).pkl")
     else
-        cp(joinpath(parsed_args["temp_output"], "$(var["input_noext"])/ranked_0.pdb"), f_out)
+        cp(joinpath(args["temp_output"], "$(var["input_noext"])/ranked_0.pdb"), f_out)
     end
 end
 
