@@ -72,7 +72,7 @@ function commands(args, var)
         mkpath(joinpath(args["temp_output"], var["input_noext"]))
         mv("$(var["output_file"]).pkl", features_file)
     end
-    run(Cmd(`./run_alphafold.sh -d $(args["data_dir"]) -o $(args["temp_output"]) -p monomer_ptm -i $(var["input_path"]) -m model_1,model_2,model_3,model_4,model_5 -t 2020-05-14 $(gpu_usage) $(parafold_args)`, dir=args["parafold_dir"]))
+    run(Cmd(`./run_alphafold.sh -d $(args["data_dir"]) -o $(args["temp_output"]) -p monomer_ptm -i $(var["input_path"]) -m model_1,model_2,model_3,model_4,model_5 -t 2020-05-14 $(var["gpu_usage"]) $(var["parafold_args"])`, dir=args["parafold_dir"]))
     if args["msa_only"]
         cp(features_file, "$(var["output_file"]).pkl")
     else
@@ -82,7 +82,7 @@ end
 
 function main()::Cint
     parsed_args = parse_commandline()
-    work_on_multiple(parsed_args, commands, 'f'; in_conditions=input_conditions, preprocess=preprocess!)
+    work_on_multiple(parsed_args, commands, 'f'; in_conditions=input_conditions, initialize=initialize!, preprocess=preprocess!)
     return 0
 end
 
