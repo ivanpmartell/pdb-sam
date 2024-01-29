@@ -61,7 +61,7 @@ function work_on_multiple(script_args, run_cmds, input_type; in_conditions=defau
     default_output_arg!(script_args)
     var = Dict()
     var["abs_input"], var["abs_output"] = no_output_equals_input(script_args["input"], script_args["output"])
-    if !isfile(var["abs_input"])
+    if !isdir(var["abs_input"])
         throw(ErrorException("Input is not a directory"))
     end
     monitor_process(script_args, run_cmds; input_conditions=in_conditions, initialize=initialize, preprocess=preprocess, finalize=finalize, var=var, input_type=input_type, nested=nested, skip_error=script_args["skip_error"], runtime_unit=runtime_unit)
@@ -275,5 +275,5 @@ function input_dir_out_preprocess!(var, fname; fext="", cdir="", basedir="")
     var["error_file"] = "$(var["output_file"]).err"
 end
 
-default_input_condition(args::Dict{String, Any}, path::String) = return true
-default_var_procedure(args::Dict{String, Any}, vars::Dict{String, Any}) = return true
+default_input_condition(args::Dict{Any, Any}, path::String) = return true
+default_var_procedure(args::Dict{Any, Any}, vars::Dict{Any, Any}) = return true
