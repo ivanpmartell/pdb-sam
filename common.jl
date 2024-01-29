@@ -6,7 +6,7 @@ function monitor_process(script_args, commands; input_conditions=default_input_c
     print_log(start_time, "Starting work on $(var["abs_input"])")
     counter = 0
     error_counter = 0
-    for input in process_input(var["abs_input"], input_conditions, input_type, script_args, nested)
+    for input in process_input(var["abs_input"], input_type, input_conditions, script_args, nested)
         iter_start_time = now()
         counter += 1
         if length(var["abs_input"]) == 1
@@ -138,8 +138,8 @@ end
 function process_files(input_dir, input_conditions, script_args, nested)
     files = Vector{String}()
     if nested
-        for (root, dirs, files) in walkdir(input_dir)
-            for f in files
+        for (root, dirs, fls) in walkdir(input_dir)
+            for f in fls
                 f_path = joinpath(root, f)
                 if input_conditions(script_args, f_path)
                     push!(files, get_relpath(input_dir, f_path))
@@ -194,19 +194,11 @@ function remove_ext(path)
 end
 
 function has_extension(f::AbstractString, ext::AbstractString)
-    ext = lstrip(ext, '.')
     f_name, f_ext = basename_ext(f)
     return f_ext == ext
 end
 
 function has_extension(f::AbstractString, ext::Vector{AbstractString})
-    ext = modify(ext, lstrip, '.')
-    f_name, f_ext = basename_ext(f)
-    return f_ext in ext
-end
-
-function has_extension!(f::AbstractString, ext::Vector{AbstractString})
-    ext = modify!(ext, lstrip, '.')
     f_name, f_ext = basename_ext(f)
     return f_ext in ext
 end
@@ -277,3 +269,4 @@ end
 
 default_input_condition(args::Dict{Any, Any}, path::String) = return true
 default_var_procedure(args::Dict{Any, Any}, vars::Dict{Any, Any}) = return true
+default_var_procedure(args::Dict{String, Any}, vars::Dict{Any, Any}) = return true
