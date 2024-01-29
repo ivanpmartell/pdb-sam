@@ -24,7 +24,7 @@ end
 input_conditions(a,f) = return has_extension(f, a["extension"])
 
 function preprocess!(args, var)
-    input_dir_out_preprocess!(var, var["input_noext"], "ala")
+    input_dir_out_preprocess!(var, var["input_noext"]; fext="ala")
 end
 
 function commands(args, var)

@@ -49,7 +49,7 @@ function initialize!(args, var)
 end
 
 function preprocess!(args, var)
-    input_dir_out_preprocess!(var, var["input_noext"], "mut")
+    input_dir_out_preprocess!(var, var["input_noext"]; fext="mut")
 end
 
 function commands(args, var)

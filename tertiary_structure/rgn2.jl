@@ -29,7 +29,7 @@ end
 input_conditions(a,f) = return has_extension(f, a["extension"]) && startswith(last(splitdir(dirname(f))), "Cluster")
 
 function preprocess!(args, var)
-    input_dir_out_preprocess!(var, var["input_noext"], "pdb", "rgn2/")
+    input_dir_out_preprocess!(var, var["input_noext"]; fext="pdb", cdir="rgn2/")
 end
 
 function commands(args, var)

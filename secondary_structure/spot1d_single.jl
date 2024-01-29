@@ -45,7 +45,7 @@ function initialize!(args, var)
 end
 
 function preprocess!(args, var)
-    input_dir_out_preprocess!(var, var["input_noext"], "csv", "spot1d_single/")
+    input_dir_out_preprocess!(var, var["input_noext"]; fext="csv", cdir="spot1d_single/")
 end
 
 function commands(args, var)

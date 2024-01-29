@@ -29,7 +29,7 @@ end
 input_conditions(a,f) = return has_extension(f, a["extension"]) && startswith(last(splitdir(dirname(f))), "Cluster")
 
 function preprocess!(args, var)
-    input_dir_out_preprocess!(var, var["input_noext"], "pdb", "colabfold/")
+    input_dir_out_preprocess!(var, var["input_noext"]; fext="pdb", cdir="colabfold/")
 end
 
 function commands(args, var)

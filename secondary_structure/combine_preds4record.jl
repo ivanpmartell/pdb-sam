@@ -31,7 +31,7 @@ function preprocess!(args, var)
     cluster_dir_index = findlast(x -> startswith(x, "Cluster"), f_path_split)
     cluster_path = joinpaths(f_path_split[1:cluster_dir_index])
     var["output_basename"] = f_path_split[cluster_dir_index]
-    input_dir_out_preprocess!(var, var["input_noext"], "rec.res"; basedir=cluster_path)
+    input_dir_out_preprocess!(var, var["input_noext"]; fext="rec.res", basedir=cluster_path)
 end
 
 function commands(args, var)

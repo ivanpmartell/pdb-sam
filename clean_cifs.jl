@@ -167,7 +167,7 @@ end
 input_conditions(a,f) = return basename(f) == a["file_name"]
 
 function preprocess!(args, var)
-    input_dir_out_preprocess!(var, var["input_noext"], "ala")
+    input_dir_out_preprocess!(var, var["input_noext"]; fext="ala")
 end
 
 function commands(args, var)

@@ -15,7 +15,7 @@ function monitor_process(script_args, commands; input_conditions=default_input_c
             var["input_path"] = joinpath(var["abs_input"], input)
         end
         var["input_basename"] = basename(input)
-        var["input_noext"] = first(split(var["file_basename"], "."))
+        var["input_noext"] = first(split(var["input_basename"], "."))
         preprocess(script_args, var) #Define output_file, abs_output_dir, error_file
         if !isfile(var["output_file"])
             if skip_error && isfile(var["error_file"])
@@ -256,7 +256,7 @@ end
 
 function input_dir_out_preprocess!(var, fname; fext="", cdir="", basedir="")
     if isempty(basedir)
-        basedir = dirname(var["input_file"])
+        basedir = dirname(var["input_path"])
     end
     output_basename = "$(fname)"
     if !isempty(fext)
