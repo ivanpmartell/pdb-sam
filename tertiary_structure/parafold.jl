@@ -70,7 +70,7 @@ function commands(args, var)
             return 0
         end
         mkpath(joinpath(args["temp_output"], var["input_noext"]))
-        mv("$(var["output_file"]).pkl", features_file)
+        cp("$(var["output_file"]).pkl", features_file)
     end
     run(Cmd(`./run_alphafold.sh -d $(args["data_dir"]) -o $(args["temp_output"]) -p monomer_ptm -i $(var["input_path"]) -m model_1,model_2,model_3,model_4,model_5 -t 2020-05-14 $(var["gpu_usage"]) $(var["parafold_args"])`, dir=args["parafold_dir"]))
     if args["msa_only"]

@@ -93,7 +93,7 @@ parsed_args = parse_commandline()
 if parsed_args["nested"]
     for (root, dirs, files) in ProgressBar(walkdir(parsed_args["input"]))
         for f in files
-            if endswith(f, parsed_args["extension"])
+            if has_extension(f, parsed_args["extension"])
                 f_path = joinpath(root,f)
                 if separate_records(f_path)
                     if !isnothing(parsed_args["output"])

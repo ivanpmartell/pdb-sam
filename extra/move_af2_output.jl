@@ -24,7 +24,7 @@ end
 parsed_args = parse_commandline()
 
 function input_conditions(in_file, in_path)
-    return endswith(in_file, parsed_args["extension"]) && startswith(last(splitdir(in_path)), "Cluster")
+    return has_extension(in_file, parsed_args["extension"]) && startswith(last(splitdir(in_path)), "Cluster")
 end
 
 function commands(f_path, f_noext, f_out)

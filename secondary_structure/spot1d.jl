@@ -35,7 +35,7 @@ function commands(args, var)
     spot1d_input_file = joinpath(spot1d_input_dir, "$(var["input_noext"]).$(input_ext)")
     spot1d_output_dir = joinpath(args["spot1d_dir"], "outputs/")
     #Clean input directory to prevent processing of previous inputs
-    foreach(rm, filter(endswith(".$(input_ext)"), readdir(spot1d_input_dir,join=true)))
+    foreach(rm, filter(has_extension(".$(input_ext)"), readdir(spot1d_input_dir,join=true)))
     cp(var["input_path"], spot1d_input_file, force=true)
     run(Cmd(`./run_spot1d.sh`, dir=args["spot1d_dir"]))
     #Move files from spot1d outputs to output folder once processed. Clean spot1d directory.

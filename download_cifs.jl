@@ -120,7 +120,7 @@ if !parsed_args["nested"]
 else
     for (root, dirs, files) in ProgressBar(walkdir(parsed_args["input"]))
         for f in files
-            if endswith(f, ".ala")
+            if has_extension(f, ".ala")
                 f_path = joinpath(root, f)
                 f_path_no_root_folder = lstrip(replace(f_path, Regex("^$(parsed_args["input"])")=>""), '/')
                 f_out_path = dirname(joinpath(parsed_args["output"], f_path_no_root_folder))

@@ -24,7 +24,7 @@ function parse_commandline()
     return parse_args(s)
 end
 
-input_conditions(a,f) = has_extension(f, a["dssp_extension"]) || has_extension(f, a["pred_extension"])
+input_conditions(a,f) = has_extension(f, [a["dssp_extension"], a["pred_extension"]])
 
 function preprocess!(args, var)
     f_path_split = splitpath(var["input_path"])
