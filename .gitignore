@@ -45,3 +45,5 @@ ncbi-blast-2.8.1+/
 *.csv
 *.ss2
 *.tar.gz
+*.err
+*.pkl

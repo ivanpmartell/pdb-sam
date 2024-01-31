@@ -49,9 +49,6 @@ function work_on_single(script_args, run_cmds; in_conditions=default_input_condi
     default_output_arg!(script_args)
     var = Dict()
     var["abs_input"], var["abs_output"] = get_abspaths(script_args["input"], script_args["output"])
-    if !isfile(var["abs_input"])
-        throw(ErrorException("Input is not a file"))
-    end
     var["output_file"] = var["abs_output"]
     var["abs_output_dir"] = dirname(var["abs_output"])
     monitor_process(script_args, run_cmds; input_conditions=in_conditions, initialize=initialize, preprocess=preprocess, finalize=finalize, var=var, skip_error=script_args["skip_error"], runtime_unit=runtime_unit)
@@ -114,8 +111,8 @@ function joinpaths(paths::Union{Tuple{AbstractString}, AbstractVector{AbstractSt
 end
 
 function process_input(input, input_type, input_conditions, script_args, nested)
-    if isfile(input)
-        return process_file(input, input_conditions, script_args)
+    if isfile(input) || isURL(input)
+        return process_str_input(input, input_conditions, script_args)
     elseif isdir(input)
         if input_type == 'f'
             return process_files(input, input_conditions, script_args, nested)
@@ -127,11 +124,11 @@ function process_input(input, input_type, input_conditions, script_args, nested)
     end
 end
 
-function process_file(input_file, input_conditions, script_args)
-    if input_conditions(input_file)
-        return [input_file]
+function process_str_input(input, input_conditions, script_args)
+    if input_conditions(script_args, input)
+        return [input]
     else
-        throw(ErrorException("Input file does not meet conditions"))
+        throw(ErrorException("Input does not meet conditions"))
     end
 end
 
@@ -234,11 +231,12 @@ function get_abspaths(input, output)
 end
 
 function get_abspath(path)
+    if isURL(path)
+        return path
+    end
     abs_input = ""
-    if !isnothing(path)
-        if !isempty(path)
-            abs_input = abspath(path)
-        end
+    if !isnothing(path) && !isempty(path)
+        abs_input = abspath(path)
     end
     return abs_input
 end
@@ -267,6 +265,11 @@ function input_dir_out_preprocess!(var, fname; fext="", cdir="", basedir="")
     var["error_file"] = "$(var["output_file"]).err"
 end
 
+function isURL(url)
+    return occursin(r"^[a-zA-Z][a-zA-Z\d+\-.]*:", url)
+end
+
 default_input_condition(args::Dict{Any, Any}, path::String) = return true
+default_input_condition(args::Dict{String, Any}, path::String) = return true
 default_var_procedure(args::Dict{Any, Any}, vars::Dict{Any, Any}) = return true
 default_var_procedure(args::Dict{String, Any}, vars::Dict{Any, Any}) = return true

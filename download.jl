@@ -10,6 +10,10 @@ function parse_commandline()
         "--output", "-o"
             help = "Output file (fasta format)"
             required = true
+        "--input", "-i"
+            help = "Input url to download PDB sequences"
+            default = "https://files.wwpdb.org/pub/pdb/derived_data/pdb_seqres.txt.gz"
+            required = false
     end
     return parse_args(s)
 end
@@ -19,7 +23,7 @@ function preprocess!(args, var)
 end
 
 function commands(args, var)
-    run(`wget -nc https://ftp.wwpdb.org/pub/pdb/derived_data/pdb_seqres.txt.gz`)
+    run(`wget -nc $(args["input"])`)
     run(`gunzip pdb_seqres.txt.gz`)
     run(`mv pdb_seqres.txt $(var["output_file"])`)
 end
