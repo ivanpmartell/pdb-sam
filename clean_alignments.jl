@@ -30,8 +30,8 @@ function commands(args, var)
     FASTA.Writer(open(var["output_file"], "w")) do writer
         FASTA.Reader(IOBuffer(str_input)) do reader
             for record in reader
-                if !in(sequence(LongAminoAcidSeq, record), unique_seqs)
-                    push!(unique_seqs, sequence(LongAminoAcidSeq, record))
+                if !in(sequence(LongAA, record), unique_seqs)
+                    push!(unique_seqs, sequence(LongAA, record))
                     write(writer, record)
                 else
                     println("Removed duplicate sequence $(identifier(record)) on $(var["output_file"])")

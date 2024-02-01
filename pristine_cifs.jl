@@ -46,7 +46,7 @@ function separate_records(in_path)
         for record in reader
             num_records += 1
             out_file = joinpath(dirname(in_path), "$(identifier(record)).fa")
-            seq = sequence(LongAminoAcidSeq, record)
+            seq = sequence(LongAA, record)
             seq_len = count(iscertain, seq)
             #seq_len = length(seq)
             rec_len = extract_len(description(record))

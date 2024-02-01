@@ -32,10 +32,10 @@ function commands(args, var)
             for record in reader
                 try
                     if occursin("mol:protein", description(record)) &&
-                            !in(sequence(LongAminoAcidSeq, record), seqs) &&
+                            !in(sequence(LongAA, record), seqs) &&
                             isnothing(match(onlyX, sequence(String, record)))
                         write(writer, record)
-                        push!(seqs, sequence(LongAminoAcidSeq, record))
+                        push!(seqs, sequence(LongAA, record))
                     end
                 catch e
                     println("Skipping record (malformed)")

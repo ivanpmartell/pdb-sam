@@ -36,6 +36,8 @@ function monitor_process(script_args, commands; input_conditions=default_input_c
                 error_counter += 1
                 continue
             end
+        else
+            print_log(iter_start_time, "Output already exists on $(var["output_file"])")
         end
     end
     finalize(script_args, var)

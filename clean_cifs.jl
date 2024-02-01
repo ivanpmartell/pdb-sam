@@ -31,7 +31,7 @@ function get_seq_coverage(records, seqs_length)
     aa_coverage = Vector{Dict{AminoAcid,Set{Int64}}}(undef, seqs_length)
     seq_gaps = Vector{Int64}()
     for i in eachindex(records)
-        seq = sequence(LongAminoAcidSeq, records[i])
+        seq = sequence(LongAA, records[i])
         gap_count = 0
         for l in eachindex(seq)
             if seq[l] == AA_Gap #only check non-gaps
@@ -175,7 +175,7 @@ function commands(args, var)
     FASTA.Reader(open(var["input_path"])) do reader
         records = collect(reader)
     end
-    seqs_length = length(sequence(LongAminoAcidSeq, records[1]))
+    seqs_length = length(sequence(LongAA, records[1]))
     aa_coverage = get_seq_coverage(records, seqs_length)
     # Find records that do not contribute to the mutations (gap or all mutations in seq are contained in another one)
     #Remove if covered previously TODO: also sort by gap count

@@ -1,8 +1,8 @@
 apt-get -y update && apt-get install -y wget build-essential zlib1g zlib1g-dev python3-pip ttf-mscorefonts-installer
 
-wget https://julialang-s3.julialang.org/bin/linux/x64/1.8/julia-1.8.2-linux-x86_64.tar.gz && \
-    tar xvf julia-1.8.2-linux-x86_64.tar.gz && \
-    rm -f julia-1.8.2-linux-x86_64.tar.gz
+wget https://julialang-s3.julialang.org/bin/linux/x64/1.10/julia-1.10.0-linux-x86_64.tar.gz && \
+    tar xvf julia-1.10.0-linux-x86_64.tar.gz && \
+    rm -f julia-1.10.0-linux-x86_64.tar.gz
 
 wget https://github.com/weizhongli/cdhit/releases/download/V4.8.1/cd-hit-v4.8.1-2019-0228.tar.gz && \
     tar xvf cd-hit-v4.8.1-2019-0228.tar.gz && \
@@ -39,5 +39,7 @@ echo "Add the following folders to PATH inside the ~/.profile and ~/.bashrc file
 echo "Replace pdb-sam with full path to repository folder: PATH=\"pdb-sam/julia-1.8.2/bin:pdb-sam/cd-hit:pdb-sam/cd-hit/cd-hit-auxtools:pdb-sam/cd-hit/psi-cd-hit:pdb-sam/ncbi-blast-2.8.1+/bin:/usr/local/emboss/bin:\$PATH\""
 echo "Add julia and python libraries from README.md"
 
-echo "PATH=\"$(pwd)/julia-1.8.2/bin:$(pwd)/cd-hit:$(pwd)/cd-hit/cd-hit-auxtools:$(pwd)/cd-hit/psi-cd-hit:$(pwd)/ncbi-blast-2.8.1+/bin:/usr/local/emboss/bin:\$PATH\"" >> ~/.profile
-echo "PATH=\"$(pwd)/julia-1.8.2/bin:$(pwd)/cd-hit:$(pwd)/cd-hit/cd-hit-auxtools:$(pwd)/cd-hit/psi-cd-hit:$(pwd)/ncbi-blast-2.8.1+/bin:/usr/local/emboss/bin:\$PATH\"" >> ~/.bashrc
+echo "PATH=\"$(pwd)/julia-1.10.0/bin:$(pwd)/cd-hit:$(pwd)/cd-hit/cd-hit-auxtools:$(pwd)/cd-hit/psi-cd-hit:$(pwd)/ncbi-blast-2.8.1+/bin:/usr/local/emboss/bin:\$PATH\"" >> ~/.profile
+echo "PATH=\"$(pwd)/julia-1.10.0/bin:$(pwd)/cd-hit:$(pwd)/cd-hit/cd-hit-auxtools:$(pwd)/cd-hit/psi-cd-hit:$(pwd)/ncbi-blast-2.8.1+/bin:/usr/local/emboss/bin:\$PATH\"" >> ~/.bashrc
+
+"$(pwd)/julia-1.10.0/bin/julia" -e 'using Pkg; Pkg.add(["ArgParse", "FASTX", "BioStructures", "LogExpFunctions", "Pandas"])'

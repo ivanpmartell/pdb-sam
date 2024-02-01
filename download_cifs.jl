@@ -97,7 +97,7 @@ if !parsed_args["nested"]
                     end
                 end
                 struc = read(downloaded_path, MMCIF)[chain]
-                current_seq = LongAminoAcidSeq(struc, standardselector, gaps=true)
+                current_seq = LongAA(struc, standardselector, gaps=true)
                 push!(pdb_struct_seqs, current_seq)
                 if !isfile("$(file_name).cif")
                     writemmcif("$(file_name).cif", struc)
@@ -139,7 +139,7 @@ else
                             end
                         end
                         struc = read(downloaded_path, MMCIF)[chain]
-                        current_seq = LongAminoAcidSeq(struc, standardselector, gaps=true)
+                        current_seq = LongAA(struc, standardselector, gaps=true)
                         push!(pdb_struct_seqs, current_seq)
                         if !isfile("$(file_out).cif")
                             writemmcif("$(file_out).cif", struc)

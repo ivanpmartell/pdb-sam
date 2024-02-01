@@ -104,9 +104,9 @@ function separate_protein_clusters(cluster_dict, f_out)
 end
 
 #Write separate .fa files for each cluster
-function write_cluster_directories(protein_cluster, out_dir)
+function write_cluster_directories(args, protein_cluster, out_dir)
     mkpath(out_dir)
-    FASTA.Reader(open(parsed_args["fasta"])) do reader
+    FASTA.Reader(open(args["fasta"])) do reader
         for record in reader
             try
                 current_cluster = protein_cluster[identifier(record)]
@@ -129,7 +129,7 @@ function commands(args, var)
     remove_identical!(cluster_dict)
     remove_singleton!(cluster_dict)
     protein_cluster = separate_protein_clusters(cluster_dict, var["output_file"])
-    write_cluster_directories(protein_cluster, var["abs_output_dir"])
+    write_cluster_directories(args, protein_cluster, var["abs_output_dir"])
 end
 
 function main()::Cint

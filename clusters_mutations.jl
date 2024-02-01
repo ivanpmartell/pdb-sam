@@ -58,7 +58,7 @@ function commands(args, var)
     freqs = zeros(Int, (alphabet_len, seqs_len))
     FASTA.Reader(open(var["input_path"])) do reader
         for record in reader
-            seq = sequence(LongAminoAcidSeq, record)
+            seq = sequence(LongAA, record)
             for i in eachindex(seq)
                 aa = seq[i]
                 if is_standard(aa)

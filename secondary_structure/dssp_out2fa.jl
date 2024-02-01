@@ -43,7 +43,7 @@ function parse_dssp_mmcif(results_path, chain)
     end
     #Obtain sequence
     struc = ProteinStructure(mmcif_dict)
-    sequence = LongAminoAcidSeq(struc[chain], standardselector, gaps=true)
+    sequence = LongAA(struc[chain], standardselector, gaps=true)
     df = DataFrame(assignments, dssp_readable_header)
     filter!(:chain_end => ==(chain), df)
     df.seq_start = parse.(Int64, df.seq_start)
