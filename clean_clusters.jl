@@ -104,13 +104,13 @@ function separate_protein_clusters(cluster_dict, f_out)
 end
 
 #Write separate .fa files for each cluster
-function write_cluster_directories(args, protein_cluster, out_dir)
-    mkpath(out_dir)
+function write_cluster_directories(args, protein_cluster)
+    mkpath(args["directory"])
     FASTA.Reader(open(args["fasta"])) do reader
         for record in reader
             try
                 current_cluster = protein_cluster[identifier(record)]
-                FASTA.Writer(open("$(joinpath(out_dir, current_cluster)).fa", "a")) do writer
+                FASTA.Writer(open("$(joinpath(args["directory"], current_cluster)).fa", "a")) do writer
                     write(writer, record)
                 end
             catch e
@@ -121,7 +121,7 @@ function write_cluster_directories(args, protein_cluster, out_dir)
 end
 
 function preprocess!(args, var)
-    var["error_file"] = "$(var["output_file"]).err"
+    file_preprocess!(var)
 end
 
 function commands(args, var)
@@ -129,7 +129,7 @@ function commands(args, var)
     remove_identical!(cluster_dict)
     remove_singleton!(cluster_dict)
     protein_cluster = separate_protein_clusters(cluster_dict, var["output_file"])
-    write_cluster_directories(args, protein_cluster, var["abs_output_dir"])
+    write_cluster_directories(args, protein_cluster)
 end
 
 function main()::Cint
@@ -137,7 +137,7 @@ function main()::Cint
     if isnothing(parsed_args["fasta"])
         parsed_args["fasta"] = chop(parsed_args["input"], tail=6)
     end
-    work_on_single(parsed_args, commands; preprocess=preprocess!)
+    work_on_single(parsed_args, commands; preprocess=preprocess!, runtime_unit="sec")
     return 0
 end
 

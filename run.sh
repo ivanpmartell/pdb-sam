@@ -3,7 +3,7 @@ julia filter_data.jl -i data/pdb_seqres.fa -o data/pdb_filtered.fa > data/filter
 julia cluster_data.jl -i data/pdb_filtered.fa -o data/pdb_clustered.fa
 julia clean_clusters.jl -i data/pdb_clustered.fa.clstr -o data/pdb_clean_clustered.fa.clstr -d clusters -f data/pdb_seqres.fa
 julia align_fasta.jl -i clusters/ -o alignments
-julia clean_alignments.jl -i alignments/ -o cleaned_alignments > data/clean_alignments.log
+julia clean_alignments.jl -i alignments/ -o cleaned_alignments > alignments/clean_alignments.log
 julia download_cifs.jl -i cleaned_alignments/ -o mmcifs -s
 ./fix_paths.sh mmcifs
 cp mmcifs ungapped_mmcifs
@@ -13,7 +13,7 @@ julia align_fasta.jl -i ungapped_mmcifs
 julia clean_cifs.jl -i ungapped_mmcifs/ -o cleaned_ungapped_mmcifs
 julia pristine_cifs.jl -i cleaned_ungapped_mmcifs/ -o pristine_mmcifs -e .ala -n
 #Secondary structure assignment (DSSP)
-julia download_cifs.jl -i pristine_mmcifs/ -d -n
+julia download_cifs.jl -i pristine_mmcifs/ -d -n #CHANGE TO DSSP.jl
 #Secondary structure prediction on pristine mmcifs
 julia secondary_structure/raptorx.jl -i pristine_mmcifs/ -e .fa -r /storage/ssp-tools/2dstruc/Predict_Property/
 julia secondary_structure/sspro8.jl -i pristine_mmcifs -e .fa -s /storage/ssp-tools/2dstruc/SCRATCH-1D_2.0/

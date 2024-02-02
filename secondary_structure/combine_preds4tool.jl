@@ -29,7 +29,7 @@ input_dir_conditions(a,d) = return startswith(d, "Cluster")
 input_conditions(a,f) = return has_extension(f, [a["dssp_extension"], a["pred_extension"]])
 
 function preprocess!(args, var)
-    input_dir_out_preprocess!(var, var["input_noext"]; fext="ssfa")
+    input_dir_out_preprocess!(var, var["input_noext"]; fext=".ssfa")
 end
 
 function commands(args, var)

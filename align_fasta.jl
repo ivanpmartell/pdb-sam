@@ -17,6 +17,7 @@ function parse_commandline()
         "--extension", "-e"
             help = "Extension for input files. Usually '.fa'"
             default = ".fa"
+            required = false
     end
     return parse_args(s)
 end
@@ -24,7 +25,7 @@ end
 input_conditions(a,f) = return has_extension(f, a["extension"])
 
 function preprocess!(args, var)
-    input_dir_out_preprocess!(var, var["input_noext"]; fext="ala")
+    input_dir_out_preprocess!(var, var["input_noext"]; fext=".ala")
 end
 
 function commands(args, var)
@@ -34,7 +35,7 @@ end
 
 function main()::Cint
     parsed_args = parse_commandline()
-    work_on_multiple(parsed_args, commands, 'f'; in_conditions=input_conditions, preprocess=preprocess!)
+    work_on_multiple(parsed_args, commands, 'f'; in_conditions=input_conditions, preprocess=preprocess!, runtime_unit="min")
     return 0
 end
 

@@ -1,7 +1,7 @@
 using ArgParse
 using ProgressBars
 include("./common.jl")
-#TODO
+
 function parse_commandline()
     s = ArgParseSettings()
     @add_arg_table! s begin

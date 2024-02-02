@@ -18,7 +18,7 @@ function parse_commandline()
 end
 
 function preprocess!(args, var)
-    var["error_file"] = "$(var["output_file"]).err"
+    file_preprocess!(var)
 end
 
 #TODO: Add mmseqs2 option
@@ -28,7 +28,7 @@ end
 
 function main()::Cint
     parsed_args = parse_commandline()
-    work_on_single(parsed_args, commands; preprocess=preprocess!)
+    work_on_single(parsed_args, commands; preprocess=preprocess!, runtime_unit="sec")
     return 0
 end
 

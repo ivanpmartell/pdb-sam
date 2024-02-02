@@ -26,7 +26,7 @@ end
 input_conditions(a,f) = return has_extension(f, a["extension"]) && last(splitdir(dirname(f))) == "spot1d_single"
 
 function preprocess!(args, var)
-    input_dir_out_preprocess!(var, var["input_noext"]; fext="sspfa")
+    input_dir_out_preprocess!(var, var["input_noext"]; fext=".sspfa")
 end
 
 function commands(args, var)

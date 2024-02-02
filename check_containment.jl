@@ -75,7 +75,10 @@ input_conditions(a,d) = return startswith(d, "Cluster")
 function initialize!(args, var)
     var["amount_dups"] = 0
     var["total_amount"] = 0
-    var["error_file"] = "$(args["check_file"]).err"
+end
+
+function preprocess!(args, var)
+    file_preprocess!(var; input_only=true)
 end
 
 function finalize(args, var)
@@ -102,7 +105,7 @@ end
 
 function main()::Cint
     parsed_args = parse_commandline()
-    work_on_multiple(parsed_args, commands, 'd'; in_conditions=input_conditions, initialize=initialize!, finalize=finalize, nested=false)
+    work_on_multiple(parsed_args, commands, 'd'; in_conditions=input_conditions, initialize=initialize!, preprocess=preprocess!, finalize=finalize, nested=false)
     return 0
 end
 

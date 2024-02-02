@@ -59,7 +59,7 @@ function initialize!(args, var)
 end
 
 function preprocess!(args, var)
-    input_dir_out_preprocess!(var, var["input_noext"]; fext="pdb", cdir="af2/")
+    input_dir_out_preprocess!(var, var["input_noext"]; fext=".pdb", cdir="af2/")
 end
 
 function commands(args, var)
