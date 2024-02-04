@@ -1,9 +1,8 @@
 using ArgParse
-using ProgressBars
 using FASTX
 using BioSequences
 include("./common.jl")
-
+#TODO: fix
 struct AACoverage
     position::Int64
     aa::AminoAcid

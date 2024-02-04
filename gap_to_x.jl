@@ -1,5 +1,4 @@
 using ArgParse
-using ProgressBars
 include("./common.jl")
 
 function parse_commandline()

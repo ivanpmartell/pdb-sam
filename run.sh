@@ -6,7 +6,7 @@ julia align_fasta.jl -i clusters/ -o alignments
 julia clean_alignments.jl -i alignments/ -o cleaned_alignments > alignments/clean_alignments.log
 julia download_cifs.jl -i cleaned_alignments/ -o mmcifs -s
 ./fix_paths.sh mmcifs
-cp mmcifs ungapped_mmcifs
+cp -r mmcifs ungapped_mmcifs
 julia gap_to_x.jl -i mmcifs/ -o ungapped_mmcifs -p nogap_
 julia align_fasta.jl -i ungapped_mmcifs
 #If the first copy command was forgotten, use: cp -r mmcifs/* ungapped_mmcifs/
