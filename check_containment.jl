@@ -19,12 +19,13 @@ function parse_commandline()
     return parse_args(s)
 end
 
-fasta_ext(f) = return has_extension(f, ".fa")
+fasta_ext(a,f) = return has_extension(f, ".fa")
 
 function read_fasta_in_dir(cluster_dir)
     fa_records = Vector{FASTA.Record}()
-    for f_path in process_files(cluster_dir, fasta_ext)
-        FASTA.Reader(open(f_path)) do reader
+    for f_path in process_input(cluster_dir, 'f'; input_conditions=fasta_ext)
+        f_abs_path = joinpath(cluster_dir, f_path)
+        FASTA.Reader(open(f_abs_path)) do reader
             append!(fa_records, collect(reader))
         end
     end

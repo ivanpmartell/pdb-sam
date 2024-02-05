@@ -45,7 +45,6 @@ end
 
 function finalize(args, var)
     println("Atoms with undefined coordinates found in $(var["undef_coord_files"]) files.")
-
 end
 
 function main()::Cint

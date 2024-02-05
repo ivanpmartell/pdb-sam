@@ -2,7 +2,7 @@ using ArgParse
 using FASTX
 using BioSequences
 include("./common.jl")
-#TODO: fix
+
 struct AACoverage
     position::Int64
     aa::AminoAcid
@@ -22,6 +22,7 @@ function parse_commandline()
             help = "Output directory. Cleaned cif clusters with unique variants will be saved here. Ignore to write files in input directory"
         "--file_name", "-f"
             help = "Filename to search inside the cluster directory"
+            default = "nogap_cif_sequences.ala"
     end
     return parse_args(s)
 end
@@ -90,15 +91,16 @@ function get_indispensable_seqs(aa_coverage, seqs_length)
     return indispensable_seqs
 end
 
-cif_ext(f) = return has_extension(f, ".cif")
+cif_ext(a,f) = return has_extension(f, ".cif")
 
 function keep_indispensable_seqs(records, indispensable_seqs, file_out, file_in)
     total_recs = length(records)
     keepat!(records, sort!(collect(indispensable_seqs)))
     indispensable_recs = Set{String}()
+    input_dir = dirname(file_in)
     if length(indispensable_seqs) == total_recs
         if !(file_in == file_out)
-            cp(dirname(file_in), dirname(file_out), force=true)
+            cp(input_dir, dirname(file_out), force=true)
             return
         else
             return
@@ -118,20 +120,22 @@ function keep_indispensable_seqs(records, indispensable_seqs, file_out, file_in)
         end
         if !(file_in == file_out)
             #if output folder is different then copy indispensable cif into output folder
-            for cif_path in process_files(dirname(file_in), cif_ext)
+            for cif_path in process_input(input_dir, 'f'; input_conditions=cif_ext)
+                cif_abs_path = joinpath(input_dir, cif_path)
                 cif_file, cif_ext = basename_ext(cif_path)
                 if cif_file in indispensable_recs
-                    output_filepath = joinpath(dirname(file_out), cif_file)
+                    output_filepath = joinpath(dirname(file_out), cif_path)
                     ensure_new_file(output_filepath)
-                    cp(cif_path, output_filepath, force=true)
+                    cp(cif_abs_path, output_filepath, force=true)
                 end
             end
         else
             #if output folder == input folder then delete unnecessary cif
-            for cif_path in process_files(dirname(file_in), cif_ext)
+            for cif_path in process_input(input_dir, 'f'; input_conditions=cif_ext)
+                cif_abs_path = joinpath(input_dir, cif_path)
                 cif_file, cif_ext = basename_ext(cif_path)
                 if cif_file in indispensable_recs
-                    rm(cif_path)
+                    rm(cif_abs_path)
                 end
             end
         end

@@ -1,9 +1,8 @@
 using ArgParse
 using FASTX
 using BioSequences
-using ProgressBars
 include("./common.jl")
-#TODO
+
 function parse_commandline()
     s = ArgParseSettings()
     @add_arg_table! s begin
@@ -18,9 +17,6 @@ function parse_commandline()
             required = true
         "--output", "-o"
             help = "Output directory. Ignore to write files in input directory"
-        "--nested", "-n"
-            help = "Choose this flag if fasta files are nested within directories inside input directory"
-            action = :store_true
         "--separate", "-s"
             help = "Choose this flag if fasta files should be separated into one record per file"
             action = :store_true
@@ -38,7 +34,7 @@ function extract_len(str)
     end
 end
 
-function separate_records(in_path)
+function separate_records(script_args, in_path)
     num_records = 0
     full_len_records = 0
     record_list = Vector{String}()
@@ -55,7 +51,7 @@ function separate_records(in_path)
                     full_len_records += 1
                 end
             end
-            if parsed_args["separate"]
+            if script_args["separate"]
                 push!(record_list, out_file)
                 FASTA.Writer(open(out_file, "w")) do writer
                     write(writer, record)
@@ -65,14 +61,9 @@ function separate_records(in_path)
     end
     if num_records > 0
         if full_len_records == num_records
-            if !isnothing(parsed_args["output"])
+            if !isnothing(script_args["output"])
                 for record in record_list
-                    f_out_path = parsed_args["output"]
-                    if parsed_args["nested"]
-                        f_path_no_root_folder = lstrip(replace(in_path, Regex("^$(parsed_args["input"])")=>""), '/')
-                        f_out_path = dirname(joinpath(parsed_args["output"], f_path_no_root_folder))
-                    end
-                    mkpath(f_out_path)
+                    f_out_path = dirname(var["output_file"])
                     out_file = joinpath(f_out_path, "$(basename(record))")
                     cp(record, out_file)
                     record_cif = "$(remove_ext(record)).cif"
@@ -89,30 +80,22 @@ function separate_records(in_path)
     end
 end
 
-parsed_args = parse_commandline()
-if parsed_args["nested"]
-    for (root, dirs, files) in ProgressBar(walkdir(parsed_args["input"]))
-        for f in files
-            if has_extension(f, parsed_args["extension"])
-                f_path = joinpath(root,f)
-                if separate_records(f_path)
-                    if !isnothing(parsed_args["output"])
-                        f_path_no_root_folder = lstrip(replace(f_path, Regex("^$(parsed_args["input"])")=>""), '/')
-                        f_out_path = joinpath(parsed_args["output"], f_path_no_root_folder)
-                        mkpath(dirname(f_out_path))
-                        cp(f_path, f_out_path, force=true)
-                    end
-                end
-            end
-        end
-    end
-else
-    for f in ProgressBar(glob("*$(parsed_args["extension"])", parsed_args["input"]))
-        if separate_records(f)
-            if !isnothing(parsed_args["output"])
-                mkpath(parsed_args["output"])
-                cp(f, parsed_args["output"], force=true)
-            end
-        end
+input_conditions(a,f) = return has_extension(f, a["extension"])
+
+function preprocess!(args, var)
+    input_dir_out_preprocess!(var, var["input_basename"])
+end
+
+function commands(args, var)
+    if separate_records(args, var["input_path"])
+        cp(var["input_path"], var["output_file"], force=true)
     end
 end
+
+function main()::Cint
+    parsed_args = parse_commandline()
+    work_on_multiple(parsed_args, commands, 'f'; in_conditions=input_conditions, preprocess=preprocess!, runtime_unit="sec")
+    return 0
+end
+
+main()

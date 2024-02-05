@@ -36,7 +36,7 @@ function commands(args, var)
     dssp_res_files = Set{String}()
     pred_res_files = Dict{String, Set{String}}()
     cluster_tool_dirs = Dict{String, String}()
-    for f in process_files(var["input_path"], input_conditions, args, true)
+    for f in process_input(var["input_path"], 'f'; input_conditions=input_conditions, script_args=args, nested=true)
         f_path = joinpath(var["input_path"], f)
         f_noext, f_ext = basename_ext(f)
         if f_ext == parsed_args["dssp_extension"]
