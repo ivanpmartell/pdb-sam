@@ -29,6 +29,7 @@ function preprocess!(args, var)
     input_dir_out_preprocess!(var, var["input_noext"]; fext=".spot1d", cdir="spot1d/")
 end
 
+#TODO feature extraction on CPU and saving/restoring the files for prediction on GPU
 function commands(args, var)
     input_ext = "fasta"
     spot1d_input_dir = joinpath(args["spot1d_dir"], "inputs/")
