@@ -18,7 +18,7 @@ export HHLIB=$hhsuitedir
 
 #-------------------------------------------------------------------------------
 # RUN ON ALL FASTA FILES IN INPUT
-find $spot1ddir/inputs -name "*.fasta" | sed "s:.fasta::" | sed "s:.*/::" > protlist.txt #COMMENT THIS LINE OUT IF YOU HAVE YOUR OWN PROTLIST.TXT!!
+#find $spot1ddir/inputs -name "*.fasta" | sed "s:.fasta::" | sed "s:.*/::" > protlist.txt #COMMENT THIS LINE OUT IF YOU HAVE YOUR OWN PROTLIST.TXT!!
 #-------------------------------------------------------------------------------
 # RUN ONLY ON SPECIFIED FILES IN PROTLIST.txt
 prots=`sed -e "s:^:$spot1ddir/inputs/:" protlist.txt`

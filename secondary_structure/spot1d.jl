@@ -29,14 +29,14 @@ function preprocess!(args, var)
     input_dir_out_preprocess!(var, var["input_noext"]; fext=".spot1d", cdir="spot1d/")
 end
 
-#TODO feature extraction on CPU and saving/restoring the files for prediction on GPU
 function commands(args, var)
     input_ext = "fasta"
     spot1d_input_dir = joinpath(args["spot1d_dir"], "inputs/")
     spot1d_input_file = joinpath(spot1d_input_dir, "$(var["input_noext"]).$(input_ext)")
     spot1d_output_dir = joinpath(args["spot1d_dir"], "outputs/")
-    #Clean input directory to prevent processing of previous inputs
-    foreach(rm, filter(has_extension(".$(input_ext)"), readdir(spot1d_input_dir,join=true)))
+    protlist_file = joinpath(args["spot1d_dir"], "protlist.txt")
+    #Use our run_spot1d.sh script
+    write_file(protlist_file, var["input_noext"]; type="w")
     cp(var["input_path"], spot1d_input_file, force=true)
     run(Cmd(`./run_spot1d.sh`, dir=args["spot1d_dir"]))
     #Move files from spot1d outputs to output folder once processed. Clean spot1d directory.

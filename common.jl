@@ -4,7 +4,7 @@ using ProgressBars
 function monitor_process(script_args, commands; input_conditions=default_input_condition, initialize=default_var_procedure, preprocess=default_var_procedure, postprocess=default_var_procedure, finalize=default_var_procedure, var=Dict(), input_type='f', nested=false, skip_error=false, runtime_unit="min")
     start_time = now()
     initialize(script_args, var) #Define abs_input, abs_output, log_file
-    print_log(var, start_time, "Starting work on $(var["abs_input"])")
+    print_log(var, "Starting work on $(var["abs_input"])"; time=start_time)
     counter = 0
     error_counter = 0
     input_files = process_input(var["abs_input"], input_type, start_time; input_conditions=input_conditions, script_args=script_args, nested=nested)
@@ -18,17 +18,18 @@ function monitor_process(script_args, commands; input_conditions=default_input_c
             var["input_path"] = joinpath(var["abs_input"], input)
         end
         var["input_basename"] = basename(input)
-        var["input_noext"] = first(split(var["input_basename"], "."))
+        var["input_noext"] = remove_ext(var["input_basename"])
         preprocess(script_args, var) #Define output_files, error_files, abs_output_dir
         for output_file in var["output_files"]
             var["output_file"] = output_file
+            var["error_file"] = var["error_files"][output_file]
             if !isfile(output_file)
-                if skip_error && isfile(var["error_files"][output_file])
+                if skip_error && isfile(var["error_file"])
                     print_runtime(var, iter_start_time, runtime_unit, "Skipping $(input)")
-                    print_log("INFO: Delete error (.err) file to process skipped file")
+                    print_log(var, "INFO: Delete error (.err) file to process skipped file")
                     continue
                 end
-                print_log(var, iter_start_time, "Working on $(input)")
+                print_log(var, "Working on $(input)"; time=iter_start_time)
                 try
                     if !isempty(var["output_file"])
                         mkpath(var["abs_output_dir"])
@@ -36,18 +37,16 @@ function monitor_process(script_args, commands; input_conditions=default_input_c
                     commands(script_args, var)
                     print_runtime(var, iter_start_time, runtime_unit, "Finished on $(input)")
                 catch e
-                    print_runtime(var, iter_start_time, runtime_unit, "ERROR: Read more at $(var["error_files"][output_file])")
-                    open(var["error_files"][output_file], "a") do error_file
-                        error_msg = sprint(showerror, e)
-                        st = sprint((io,v) -> show(io, "text/plain", v), stacktrace(catch_backtrace()))
-                        println(error_file, error_msg)
-                        println(error_file, st)
-                    end
+                    print_runtime(var, iter_start_time, runtime_unit, "ERROR: Read more at $(var["error_file"])")
+                    error_msg = sprint(showerror, e)
+                    st = sprint((io,v) -> show(io, "text/plain", v), stacktrace(catch_backtrace()))
+                    print_msg = "$(error_msg)\n$(st)"
+                    write_file(var["error_file"], print_msg)
                     error_counter += 1
                     continue
                 end
             else
-                print_log(var, iter_start_time, "Output already exists on $(output_file)")
+                print_log(var, "Output already exists on $(output_file)")
             end
         end
         postprocess(script_args, var)
@@ -56,7 +55,7 @@ function monitor_process(script_args, commands; input_conditions=default_input_c
     finalize(script_args, var)
     if counter > 1
         print_runtime(var, start_time, runtime_unit, "Finished on $(var["abs_input"])")
-        println("$(error_counter) errors found in $(counter) files")
+        print_log(var, "$(error_counter) errors found in $(counter) files")
     end
 end
 
@@ -106,16 +105,14 @@ function print_runtime(var, start_time, unit, msg)
         time_taken = Dates.value(end_time - start_time)
         runtime_msg = "Runtime: $(round(time_taken, digits=3)) ms"
     end
-    print_log(var, end_time, msg)
-    print_log(var, end_time, runtime_msg)
+    print_log(var, msg; time=end_time)
+    print_log(var, runtime_msg; time=end_time)
 end
 
-function print_log(var, time, msg)
+function print_log(var, msg; time)
     if haskey(var, "log_file")
         log_str = "$(Dates.format(time, "yyyy-mm-dd HH:MM:SS")) $(msg)"
-        open(var["log_file"], "a") do log_file
-            println(log_file, log_str)
-        end
+        write_file(var["log_file"], log_str)
     end
 end
 
@@ -312,9 +309,15 @@ function isURL(url)
 end
 
 function clean_variables!(var)
-    delete!(var, "output_files")
+    delete!(var, "output_file")
     delete!(var, "abs_output_dir")
     delete!(var, "error_file")
+end
+
+function write_file(file, msg; type="a")
+    open(file, type) do f
+        println(f, msg)
+    end
 end
 
 default_input_condition(args::Dict{Any, Any}, path::String) = return true
