@@ -1,7 +1,7 @@
 using ArgParse
 using FASTX
 using BioSequences
-include("./common.jl")
+include("../common.jl")
 
 function parse_commandline()
     s = ArgParseSettings()
@@ -39,7 +39,7 @@ function commands(args, var)
             end
         end
     end
-    if length(unique_seqs) == 1
+    if isone(length(unique_seqs))
         rm(var["output_file"])
         println("Deleted singleton cluster: $(var["output_file"])")
     end

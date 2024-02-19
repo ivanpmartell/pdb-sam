@@ -2,7 +2,7 @@ using ArgParse
 using ProgressBars
 using FASTX
 using BioSequences
-include("./common.jl")
+include("../common.jl")
 #TODO
 function parse_commandline()
     s = ArgParseSettings()

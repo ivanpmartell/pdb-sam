@@ -4,8 +4,8 @@ using FASTX
 using BioSequences
 using LogExpFunctions: xlogy
 using SparseArrays
-include("./common.jl")
-include("./seq_common.jl")
+include("../common.jl")
+include("../seq_common.jl")
 
 function parse_commandline()
     s = ArgParseSettings()

@@ -3,8 +3,8 @@ using FASTX
 using BioSequences
 using PyCall
 using Pandas
-include("./common.jl")
-include("./seq_common.jl")
+include("../common.jl")
+include("../seq_common.jl")
 
 function parse_commandline()
     s = ArgParseSettings()

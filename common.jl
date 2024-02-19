@@ -1,62 +1,43 @@
 using Dates
+using ProgressBars
 
 function monitor_process(script_args, commands; input_conditions=default_input_condition, initialize=default_var_procedure, preprocess=default_var_procedure, postprocess=default_var_procedure, finalize=default_var_procedure, var=Dict(), input_type='f', nested=false, skip_error=false, runtime_unit="min")
     start_time = now()
-    initialize(script_args, var) #Define abs_input, abs_output
-    print_log(start_time, "Starting work on $(var["abs_input"])")
+    initialize(script_args, var) #Define abs_input, abs_output, log_file
+    print_log(var, start_time, "Starting work on $(var["abs_input"])")
     counter = 0
     error_counter = 0
-    input_files = process_input(var["abs_input"], input_type; input_conditions=input_conditions, script_args=script_args, nested=nested)
-    for input in input_files
+    input_files = process_input(var["abs_input"], input_type, start_time; input_conditions=input_conditions, script_args=script_args, nested=nested)
+    print_runtime(var, start_time, "sec", "Found $(length(input_files)) files that satisfy input conditions")
+    for input in ProgressBar(input_files)
         iter_start_time = now()
         counter += 1
-        if length(input_files) == 1
+        if isone(length(input_files))
             var["input_path"] = input
         else
             var["input_path"] = joinpath(var["abs_input"], input)
         end
         var["input_basename"] = basename(input)
         var["input_noext"] = first(split(var["input_basename"], "."))
-        preprocess(script_args, var) #Define output_file, abs_output_dir, error_file
-        if !haskey(var, "output_file") && typeof(var["error_file"]) === String #Input only processes
-            if skip_error && isfile(var["error_file"])
-                print_runtime(iter_start_time, runtime_unit, "Skipping $(input)")
-                println("INFO: Delete error (.err) file to process skipped file")
-                continue
-            end
-            print_log(iter_start_time, "Working on $(input)")
-            try
-                commands(script_args, var)
-                print_runtime(iter_start_time, runtime_unit, "Finished on $(input)")
-            catch e
-                print_runtime(iter_start_time, runtime_unit, "ERROR: Read more at $(var["error_file"][output_file])")
-                open(var["error_file"][output_file], "a") do error_file
-                    error_msg = sprint(showerror, e)
-                    st = sprint((io,v) -> show(io, "text/plain", v), stacktrace(catch_backtrace()))
-                    println(error_file, error_msg)
-                    println(error_file, st)
-                end
-                error_counter += 1
-                continue
-            end
-            continue
-        end
-        for output_file in var["output_files"] #Output process
+        preprocess(script_args, var) #Define output_files, error_files, abs_output_dir
+        for output_file in var["output_files"]
             var["output_file"] = output_file
             if !isfile(output_file)
-                if skip_error && isfile(var["error_file"][output_file])
-                    print_runtime(iter_start_time, runtime_unit, "Skipping $(input)")
-                    println("INFO: Delete error (.err) file to process skipped file")
+                if skip_error && isfile(var["error_files"][output_file])
+                    print_runtime(var, iter_start_time, runtime_unit, "Skipping $(input)")
+                    print_log("INFO: Delete error (.err) file to process skipped file")
                     continue
                 end
-                print_log(iter_start_time, "Working on $(input)")
+                print_log(var, iter_start_time, "Working on $(input)")
                 try
-                    mkpath(var["abs_output_dir"])
+                    if !isempty(var["output_file"])
+                        mkpath(var["abs_output_dir"])
+                    end
                     commands(script_args, var)
-                    print_runtime(iter_start_time, runtime_unit, "Finished on $(input)")
+                    print_runtime(var, iter_start_time, runtime_unit, "Finished on $(input)")
                 catch e
-                    print_runtime(iter_start_time, runtime_unit, "ERROR: Read more at $(var["error_file"][output_file])")
-                    open(var["error_file"][output_file], "a") do error_file
+                    print_runtime(var, iter_start_time, runtime_unit, "ERROR: Read more at $(var["error_files"][output_file])")
+                    open(var["error_files"][output_file], "a") do error_file
                         error_msg = sprint(showerror, e)
                         st = sprint((io,v) -> show(io, "text/plain", v), stacktrace(catch_backtrace()))
                         println(error_file, error_msg)
@@ -66,7 +47,7 @@ function monitor_process(script_args, commands; input_conditions=default_input_c
                     continue
                 end
             else
-                print_log(iter_start_time, "Output already exists on $(output_file)")
+                print_log(var, iter_start_time, "Output already exists on $(output_file)")
             end
         end
         postprocess(script_args, var)
@@ -74,19 +55,19 @@ function monitor_process(script_args, commands; input_conditions=default_input_c
     end
     finalize(script_args, var)
     if counter > 1
-        print_runtime(start_time, runtime_unit, "Finished on $(var["abs_input"])")
+        print_runtime(var, start_time, runtime_unit, "Finished on $(var["abs_input"])")
         println("$(error_counter) errors found in $(counter) files")
     end
 end
 
-function work_on_single(script_args, run_cmds; in_conditions=default_input_condition, initialize=default_var_procedure, preprocess=default_var_procedure, postprocess=default_var_procedure, finalize=default_var_procedure, runtime_unit="min")
+function work_on_single(script_args, run_cmds; in_conditions=default_input_condition, initialize=log_initialize!, preprocess=default_var_procedure, postprocess=default_var_procedure, finalize=default_var_procedure, runtime_unit="min")
     default_output_arg!(script_args)
     var = Dict()
     var["abs_input"], var["abs_output"] = get_abspaths(script_args["input"], script_args["output"])
     monitor_process(script_args, run_cmds; input_conditions=in_conditions, initialize=initialize, preprocess=preprocess, postprocess=postprocess, finalize=finalize, var=var, skip_error=script_args["skip_error"], runtime_unit=runtime_unit)
 end
 
-function work_on_multiple(script_args, run_cmds, input_type; in_conditions=default_input_condition, initialize=default_var_procedure, preprocess=default_var_procedure, postprocess=default_var_procedure, finalize=default_var_procedure, runtime_unit="min", nested=true)
+function work_on_multiple(script_args, run_cmds, input_type; in_conditions=default_input_condition, initialize=log_initialize!, preprocess=default_var_procedure, postprocess=default_var_procedure, finalize=default_var_procedure, runtime_unit="min", nested=true)
     default_output_arg!(script_args)
     var = Dict()
     var["abs_input"], var["abs_output"] = no_output_equals_input(script_args["input"], script_args["output"])
@@ -109,46 +90,49 @@ function keep_input_dir_structure(abs_input, abs_output, abs_directory, out_dir)
     return f_out_dir
 end
 
-function print_runtime(start_time, unit, msg)
+function print_runtime(var, start_time, unit, msg)
     end_time = now()
+    runtime_msg = ""
     if unit == "min"
         time_taken = Dates.value(end_time - start_time) / 60000
-        println("Runtime: $(round(time_taken, digits=3)) minutes")
+        runtime_msg = "Runtime: $(round(time_taken, digits=3)) minutes"
     elseif unit == "hour"
         time_taken = Dates.value(end_time - start_time) / 3600000
-        println("Runtime: $(round(time_taken, digits=3)) hours")
+        runtime_msg = "Runtime: $(round(time_taken, digits=3)) hours"
     elseif unit == "sec"
         time_taken = Dates.value(end_time - start_time) / 1000
-        println("Runtime: $(round(time_taken, digits=3)) seconds")
+        runtime_msg = "Runtime: $(round(time_taken, digits=3)) seconds"
     else
         time_taken = Dates.value(end_time - start_time)
-        println("Runtime: $(round(time_taken, digits=3)) ms")
+        runtime_msg = "Runtime: $(round(time_taken, digits=3)) ms"
     end
-    print_log(end_time, msg)
+    print_log(var, end_time, msg)
+    print_log(var, end_time, runtime_msg)
 end
 
-function print_log(time, msg)
-    println("$(Dates.format(time, "yyyy-mm-dd HH:MM:SS")) $(msg)")
+function print_log(var, time, msg)
+    if haskey(var, "log_file")
+        log_str = "$(Dates.format(time, "yyyy-mm-dd HH:MM:SS")) $(msg)"
+        open(var["log_file"], "a") do log_file
+            println(log_file, log_str)
+        end
+    end
 end
 
 function joinpaths(paths::Union{Tuple{AbstractString}, AbstractVector{AbstractString}})::String
     if length(paths) == 2
         return joinpath(paths[1], paths[2])
-    elseif length(paths) == 1
+    elseif isone(length(paths))
         return first(paths)
     end
     joinpath(joinpaths(paths[1:end-1]), last(paths))
 end
 
-function process_input(input, input_type; input_conditions=default_input_condition, script_args=Dict(), nested=false)
+function process_input(input, input_type, start_time; input_conditions=default_input_condition, script_args=Dict(), nested=false)
     if isfile(input) || isURL(input)
         return process_str_input(input, input_conditions, script_args)
     elseif isdir(input)
-        if input_type == 'f'
-            return process_files(input, input_conditions, script_args, nested)
-        elseif input_type == 'd'
-            return process_directories(input, input_conditions, script_args, nested)
-        end
+        return walk_directory(input_type, input, input_conditions, script_args, nested)
     else
         throw(ErrorException("Input not found"))
     end
@@ -162,58 +146,59 @@ function process_str_input(input, input_conditions, script_args)
     end
 end
 
-function process_files(input_dir, input_conditions, script_args, nested)
-    files = Vector{String}()
-    if nested
-        for (root, dirs, fls) in walkdir(input_dir)
-            for f in fls
-                f_path = joinpath(root, f)
-                if input_conditions(script_args, f_path)
-                    push!(files, get_relpath(input_dir, f_path))
+function walk_directory(input_type, input_dir, input_conditions, script_args, nested)
+    inputs = Vector{String}()
+    for p in ProgressBar(readdir(input_dir))
+        path = joinpath(input_dir, p)
+        if isdir(path)
+            if input_type == 'd'
+                if input_conditions(script_args, path)
+                    push!(inputs, get_relpath(input_dir, path))
                 end
             end
-        end
-    else
-        for f in readdir(input_dir)
-            f_path = joinpath(input_dir, f)
-            if isfile(f_path)
-                if input_conditions(script_args, f_path)
-                    push!(files, get_relpath(input_dir, f_path))
+            if nested
+                walk_directory!(inputs, path, input_type, input_conditions, script_args, nested, input_dir)
+            end
+        else
+            if input_type == 'f'
+                if input_conditions(script_args, path)
+                    push!(inputs, get_relpath(input_dir, path))
                 end
             end
         end
     end
-    return files
+    return inputs
 end
 
-function process_directories(input_dir, input_conditions, script_args, nested)
-    directories = Vector{String}()
-    if nested
-        for (root, dirs, files) in walkdir(input_dir)
-            for dir in dirs
-                dir_path = joinpath(root, dir)
-                if input_conditions(script_args, dir_path)
-                    push!(directories, get_relpath(input_dir, dir_path))
+function walk_directory!(inputs, dir_path, input_type, input_conditions, script_args, nested, input_dir)
+    for p in readdir(dir_path)
+        path = joinpath(dir_path, p)
+        if isdir(path)
+            if input_type == 'd'
+                if input_conditions(script_args, path)
+                    push!(directories, get_relpath(input_dir, path))
                 end
             end
-        end
-    else
-        for dir in readdir(input_dir)
-            dir_path = joinpath(input_dir, dir)
-            if isdir(dir_path)
-                if input_conditions(script_args, dir_path)
-                    push!(directories, get_relpath(input_dir, dir_path))
+            walk_directory!(inputs, path, input_type, input_conditions, script_args, nested, input_dir)
+        else
+            if input_type == 'f'
+                if input_conditions(script_args, path)
+                    push!(inputs, get_relpath(input_dir, path))
                 end
             end
         end
     end
-    return directories
 end
 
 function basename_ext(path)
     f = basename(path)
-    f_name, f_ext= split(f, '.', limit=2)
-    return f_name, ".$(f_ext)"
+    f_split = split(f, '.', limit=2)
+    if isone(length(f_split))
+        return first(f_split), ""
+    else
+        f_name, f_ext = f_split
+        return f_name, ".$(f_ext)"
+    end
 end
 
 function remove_ext(path)
@@ -299,21 +284,27 @@ function input_dir_out_preprocess!(var, fname; fext="", cdir="", basedir="")
     else
         var["output_files"] = [output_file]
     end
-    if haskey(var, "error_file")
-        var["error_file"][output_file] = "$(output_file).err"
+    if haskey(var, "error_files")
+        var["error_files"][output_file] = "$(output_file).err"
     else
-        var["error_file"] = Dict(output_file => "$(output_file).err")
+        var["error_files"] = Dict(output_file => "$(output_file).err")
     end
 end
 
 function file_preprocess!(var; input_only=false)
     if input_only
-        var["error_file"] = "$(var["input_path"]).err"
+        var["output_files"] = [""]
+        var["abs_output_dir"] = ""
+        var["error_files"] = Dict("" => "$(var["input_path"]).err")
     else
         var["output_files"] = [var["abs_output"]]
         var["abs_output_dir"] = dirname(var["abs_output"])
-        var["error_file"] = Dict(var["abs_output"] => "$(var["abs_output"]).err")
+        var["error_files"] = Dict(var["abs_output"] => "$(var["abs_output"]).err")
     end
+end
+
+function log_initialize!(script_args, var)
+    var["log_file"] = "$(Dates.format(now(), "yyyymmdd-HHMM_SS")).log"
 end
 
 function isURL(url)

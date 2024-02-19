@@ -1,7 +1,7 @@
 using ArgParse
 using FASTX
 using BioSequences
-include("./common.jl")
+include("../common.jl")
 
 function parse_commandline()
     s = ArgParseSettings()
@@ -36,6 +36,8 @@ function commands(args, var)
                             isnothing(match(onlyX, sequence(String, record)))
                         write(writer, record)
                         push!(seqs, sequence(LongAA, record))
+                    else
+                        println("Filtering $(identifier(record))")
                     end
                 catch e
                     println("Skipping record (malformed)")

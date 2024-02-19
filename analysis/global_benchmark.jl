@@ -3,7 +3,7 @@ using ProgressBars
 using BioSequences
 using DataFrames
 using FASTX
-include("./common.jl")
+include("../common.jl")
 #TODO
 function parse_commandline()
     s = ArgParseSettings()

@@ -1,7 +1,7 @@
 using ArgParse
 using FASTX
 using BioSequences
-include("./common.jl")
+include("../common.jl")
 
 function parse_commandline()
     s = ArgParseSettings()

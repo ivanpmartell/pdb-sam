@@ -42,4 +42,4 @@ echo "Add julia and python libraries from README.md"
 echo "PATH=\"$(pwd)/julia-1.10.0/bin:$(pwd)/cd-hit:$(pwd)/cd-hit/cd-hit-auxtools:$(pwd)/cd-hit/psi-cd-hit:$(pwd)/ncbi-blast-2.8.1+/bin:/usr/local/emboss/bin:\$PATH\"" >> ~/.profile
 echo "PATH=\"$(pwd)/julia-1.10.0/bin:$(pwd)/cd-hit:$(pwd)/cd-hit/cd-hit-auxtools:$(pwd)/cd-hit/psi-cd-hit:$(pwd)/ncbi-blast-2.8.1+/bin:/usr/local/emboss/bin:\$PATH\"" >> ~/.bashrc
 
-"$(pwd)/julia-1.10.0/bin/julia" -e 'using Pkg; Pkg.add(["ArgParse", "FASTX", "BioStructures", "LogExpFunctions", "Pandas"])'
+"$(pwd)/julia-1.10.0/bin/julia" -e 'using Pkg; Pkg.add(["ArgParse", "FASTX", "BioStructures", "BioSequences", "LogExpFunctions", "Pandas"])'

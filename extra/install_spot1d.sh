@@ -7,14 +7,11 @@ make
 export PATH="$current_dir/CCMpred/bin:$PATH"
 cd $current_dir
 
-git clone --branch v3.3.0 https://github.com/soedinglab/hh-suite.git /tmp/hh-suite
-mkdir /tmp/hh-suite/build
-pushd /tmp/hh-suite/build
-cmake -DCMAKE_INSTALL_PREFIX=/opt/hhsuite ..
+git clone --branch v3.3.0 https://github.com/soedinglab/hh-suite.git
+mkdir -p hh-suite/build && cd hh-suite/build
+cmake -DCMAKE_INSTALL_PREFIX=. ..
 make -j 4 && make install
-ln -s /opt/hhsuite/bin/* /usr/bin
-popd
-rm -rf /tmp/hh-suite
+export PATH="$current_dir/hh-suite/bin:$PATH"
 cd $current_dir
 
 wget ftp://ftp.ncbi.nlm.nih.gov/blast/executables/blast+/2.8.1/ncbi-blast-2.8.1+-x64-linux.tar.gz && \
@@ -31,7 +28,7 @@ export LD_LIBRARY_PATH="$current_dir/conda/lib:$LD_LIBRARY_PATH"
 conda init
 conda create -y -n spot1d python=2.7
 conda activate spot1d
-pip install numpy tensorflow==1.4.0 pandas tqdm cPickle
+pip install pandas tqdm scipy numpy==1.16.1 tensorflow==1.4.0
 cd $current_dir
 
 sudo apt update
@@ -48,11 +45,18 @@ tar xf SPIDER3_local.tgz
 
 wget https://apisz.sparks-lab.org:8443/downloads/SPOT-1D-local.tar.gz
 tar xzf SPOT-1D-local.tar.gz
-cp -r SPOT-Contact-Helical-New/sources SPOT-1D-local/
+cd SPOT-1D-local
+chmod +x run_spot1d.sh
+chmod +x run_all_models.py
+cd $current_dir
+
+echo "IMPORTANT: MODIFY run_spot1d.sh script with local paths"
 
 #Databases
 mkdir databases
 cd databases
 wget https://wwwuser.gwdg.de/~compbiol/data/hhsuite/databases/hhsuite_dbs/old-releases/uniprot20_2013_03.tar.gz
 tar xzf uniprot20_2013_03.tar.gz
+mkdir nr
+cd nr
 update_blastdb.pl --decompress nr

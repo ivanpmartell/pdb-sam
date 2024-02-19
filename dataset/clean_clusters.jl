@@ -1,6 +1,6 @@
 using ArgParse
 using FASTX
-include("./common.jl")
+include("../common.jl")
 
 function parse_commandline()
     s = ArgParseSettings()
@@ -81,7 +81,7 @@ end
 #Remove singleton clusters
 function remove_singleton!(cluster_dict)
     for ckey in keys(cluster_dict)
-        if length(cluster_dict[ckey]) == 1
+        if isone(length(cluster_dict[ckey]))
             delete!(cluster_dict, ckey)
         end
     end

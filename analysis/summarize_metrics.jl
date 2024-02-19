@@ -4,7 +4,7 @@ using BioSequences
 using DataFrames
 using FASTX
 using Statistics
-include("./common.jl")
+include("../common.jl")
 #TODO
 ACCURACY_STR = "Accuracy"
 SOV99_STR = "SOV_99"

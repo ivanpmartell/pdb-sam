@@ -1,7 +1,7 @@
 using ArgParse
 using FASTX
 using BioStructures
-include("./common.jl")
+include("../common.jl")
 
 function parse_commandline()
     s = ArgParseSettings()
@@ -51,7 +51,7 @@ function preprocess!(args, var)
 end
 
 function postprocess(args, var)
-    if length(var["pdb_struct_seqs"]) == 1
+    if isone(length(var["pdb_struct_seqs"]))
         rm(dirname(var["abs_output_dir"]), recursive=true)
     end
 end

@@ -1,5 +1,5 @@
 using ArgParse
-include("./common.jl")
+include("../common.jl")
 
 #Clean gaps(-) from fasta file into any(X) before using this script (gap_to_x.jl)
 function parse_commandline()

@@ -1,5 +1,5 @@
 using ArgParse
-include("./common.jl")
+include("../common.jl")
 
 function parse_commandline()
     s = ArgParseSettings()

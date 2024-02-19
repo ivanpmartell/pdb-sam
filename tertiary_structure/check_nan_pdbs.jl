@@ -26,7 +26,10 @@ input_conditions(a,f) = has_extension(f, a["extension"])
 
 function initialize!(args, var)
     var["undef_coord_files"] = 0
-    var["error_file"] = joinpath(var["abs_input"], "undef.err")
+end
+
+function preprocess!(args, var)
+    file_preprocess!(var; input_only=true)
 end
 
 function commands(args, var)
@@ -49,7 +52,7 @@ end
 
 function main()::Cint
     parsed_args = parse_commandline()
-    work_on_multiple(parsed_args, commands, 'f'; in_conditions=input_conditions, initialize=initialize!, finalize=finalize)
+    work_on_multiple(parsed_args, commands, 'f'; in_conditions=input_conditions, initialize=initialize!, preprocess=preprocess!, finalize=finalize)
     return 0
 end
 
