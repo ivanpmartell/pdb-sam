@@ -19,7 +19,7 @@ for dir in */; do
                 for subdir in "${subdirs[@]}"; do
                     # Find all the files with the same name in the subdirectory
                     # If no results are found, print the subdirectory name
-                    test=$(find "$path" -type f -name "$name.*" -path "*/$subdir/*" -print -quit | wc -c)
+                    test=$(find "$path" -type f -name "$name.*" -path "*/$subdir/*" -print -quit | wc -l)
                     if test $test -eq 0; then
                         echo "$subdir: $dir - $name"
                         if [ $subdir == "$2" ]; then

@@ -43,15 +43,10 @@ function commands(args, var)
             push!(dssp_res_files, f_path)
         elseif f_ext == parsed_args["pred_extension"]
             tool = last(splitdir(f))
-            try
+            if haskey(pred_res_files, tool)
                 push!(pred_res_files[tool], f_path)
-            catch e
-                if isa(e, KeyError)
-                    pred_res_files[tool] = Set([f_path])
-                else
-                    print("Unexpected error occured: $e")
-                    exit(1)
-                end
+            else
+                pred_res_files[tool] = Set([f_path])
             end
         end
     end

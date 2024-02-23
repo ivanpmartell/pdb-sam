@@ -11,6 +11,14 @@ function get_sequences_length(input_file)
     end
 end
 
+function collect_fasta(input_file)
+    records = Vector{FASTX.FASTA.Record}()
+    FASTA.Reader(open(input_file)) do reader
+        records = collect(reader)
+    end
+    return records
+end
+
 function is_standard(aa::AminoAcid)
     return AA_A ≤ aa ≤ AA_V
 end
@@ -45,4 +53,45 @@ end
 function findmin_view(x,b)
     v = view(x,b)
     return first(parentindices(v))[argmax(v)]
+end
+
+function max_in_column(m, column)
+    v = view(m, :, column)
+    return first(parentindices(v))[argmax(v)]
+end
+
+function calculate_frequency_matrix(records, aa_str)
+    aa_alphabet_len = length(aa_str)
+    freqs = zeros(Int, (aa_alphabet_len, cluster_seqs_len))
+    for record in records
+        seq = sequence(LongAA, record)
+        for i in eachindex(seq)
+            aa = seq[i]
+            freqs[aa_index(aa, aa_alphabet_len, i)] += 1
+        end
+    end
+    return freqs
+end
+
+function calculate_consensus_sequence(frequency_matrix, aa_str)
+    consensus = ""
+    for i in 1:size(frequency_matrix, 2)
+        aa_idx = max_in_column(frequency_matrix, i)
+        consensus *= aa_str[aa_idx]
+    end
+    return consensus
+end
+
+function match_consensus(records, consensus_seq)
+    matching_matrix = zeros(Int, (length(records), cluster_seqs_len))
+    for idx, record in enumerate(records)
+        seq = sequence(LongAA, record)
+        for i in eachindex(seq)
+            if consensus_seq[i] == seq[i]
+                matching_matrix[idx, i] += 1
+            end
+        end
+    end
+    consensus_idx = first(argmax(sum(matching_matrix, dims=2)))
+    return records[consensus_idx]
 end

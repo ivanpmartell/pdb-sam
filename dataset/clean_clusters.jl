@@ -1,5 +1,6 @@
 using ArgParse
 using FASTX
+using ProgressBars
 include("../common.jl")
 
 function parse_commandline()
@@ -107,14 +108,14 @@ end
 function write_cluster_directories(args, protein_cluster)
     mkpath(args["directory"])
     FASTA.Reader(open(args["fasta"])) do reader
-        for record in reader
-            try
+        for record in ProgressBar(reader)
+            if haskey(protein_cluster, identifier(record))
                 current_cluster = protein_cluster[identifier(record)]
                 FASTA.Writer(open("$(joinpath(args["directory"], current_cluster)).fa", "a")) do writer
                     write(writer, record)
                 end
-            catch e
-                msg = "Protein not in clusters"
+            else
+                println("Skipping $(identifier(record)): Not in clusters file")
             end
         end
     end
@@ -135,7 +136,7 @@ end
 function main()::Cint
     parsed_args = parse_commandline()
     if isnothing(parsed_args["fasta"])
-        parsed_args["fasta"] = chop(parsed_args["input"], tail=6)
+        parsed_args["fasta"] = "$(remove_ext(parsed_args["input"])).fa"
     end
     work_on_single(parsed_args, commands; preprocess=preprocess!, runtime_unit="sec")
     return 0

@@ -17,3 +17,5 @@ ENV PATH="/opt/conda/bin:/usr/local/cuda/bin:$PATH"
 ENV LD_LIBRARY_PATH="/opt/conda/lib:/usr/local/cuda/lib64:$LD_LIBRARY_PATH"
 
 RUN pip install pandas tqdm scipy numpy==1.16.1 tensorflow-gpu==1.4.0
+
+# docker run -it --gpus all -v ~/spot1d:/mnt/spot1d spot1d /bin/bash

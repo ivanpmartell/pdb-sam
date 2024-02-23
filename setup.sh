@@ -14,13 +14,13 @@ wget https://github.com/weizhongli/cdhit/releases/download/V4.8.1/cd-hit-v4.8.1-
     make && \
     cd ../..
 
-wget ftp://ftp.ncbi.nlm.nih.gov/blast/executables/blast+/2.8.1/ncbi-blast-2.8.1+-x64-linux.tar.gz && \
-    tar xvf ncbi-blast-2.8.1+-x64-linux.tar.gz && \
-    rm -f ncbi-blast-2.8.1+-x64-linux.tar.gz
+wget ftp://ftp.ncbi.nlm.nih.gov/blast/executables/blast+/2.15.0/ncbi-blast-2.15.0+-x64-linux.tar.gz && \
+    tar xvf ncbi-blast-2.15.0+-x64-linux.tar.gz && \
+    rm -f ncbi-blast-2.15.0+-x64-linux.tar.gz
 
 wget http://www.clustal.org/omega/clustalo-1.2.4-Ubuntu-x86_64 && \
     chmod +x clustalo-1.2.4-Ubuntu-x86_64 && \
-    mv clustalo-1.2.4-Ubuntu-x86_64 ncbi-blast-2.8.1+/bin/clustalo
+    mv clustalo-1.2.4-Ubuntu-x86_64 ncbi-blast-2.15.0+/bin/clustalo
 
 wget ftp://emboss.open-bio.org/pub/EMBOSS/emboss-latest.tar.gz && \
     tar xvf emboss-latest.tar.gz && \
@@ -35,11 +35,11 @@ wget http://dna.cs.miami.edu/SOV/SOV_refine.tar.gz && \
     tar xvf SOV_refine.tar.gz && \
     rm -f SOV_refine.tar.gz
 
-echo "Add the following folders to PATH inside the ~/.profile and ~/.bashrc file: cd-hit/  cd-hit/cd-hit-auxtools  cd-hit/psi-cd-hit  ncbi-blast-2.8.1+/bin julia-1.8.2/bin"
-echo "Replace pdb-sam with full path to repository folder: PATH=\"pdb-sam/julia-1.8.2/bin:pdb-sam/cd-hit:pdb-sam/cd-hit/cd-hit-auxtools:pdb-sam/cd-hit/psi-cd-hit:pdb-sam/ncbi-blast-2.8.1+/bin:/usr/local/emboss/bin:\$PATH\""
+echo "Add the following folders to PATH inside the ~/.profile and ~/.bashrc file: cd-hit/  cd-hit/cd-hit-auxtools  cd-hit/psi-cd-hit  ncbi-blast-2.15.0+/bin julia-1.8.2/bin"
+echo "Replace pdb-sam with full path to repository folder: PATH=\"pdb-sam/julia-1.8.2/bin:pdb-sam/cd-hit:pdb-sam/cd-hit/cd-hit-auxtools:pdb-sam/cd-hit/psi-cd-hit:pdb-sam/ncbi-blast-2.15.0+/bin:/usr/local/emboss/bin:\$PATH\""
 echo "Add julia and python libraries from README.md"
 
-echo "PATH=\"$(pwd)/julia-1.10.0/bin:$(pwd)/cd-hit:$(pwd)/cd-hit/cd-hit-auxtools:$(pwd)/cd-hit/psi-cd-hit:$(pwd)/ncbi-blast-2.8.1+/bin:/usr/local/emboss/bin:\$PATH\"" >> ~/.profile
-echo "PATH=\"$(pwd)/julia-1.10.0/bin:$(pwd)/cd-hit:$(pwd)/cd-hit/cd-hit-auxtools:$(pwd)/cd-hit/psi-cd-hit:$(pwd)/ncbi-blast-2.8.1+/bin:/usr/local/emboss/bin:\$PATH\"" >> ~/.bashrc
+echo "PATH=\"$(pwd)/julia-1.10.0/bin:$(pwd)/cd-hit:$(pwd)/cd-hit/cd-hit-auxtools:$(pwd)/cd-hit/psi-cd-hit:$(pwd)/ncbi-blast-2.15.0+/bin:/usr/local/emboss/bin:\$PATH\"" >> ~/.profile
+echo "PATH=\"$(pwd)/julia-1.10.0/bin:$(pwd)/cd-hit:$(pwd)/cd-hit/cd-hit-auxtools:$(pwd)/cd-hit/psi-cd-hit:$(pwd)/ncbi-blast-2.15.0+/bin:/usr/local/emboss/bin:\$PATH\"" >> ~/.bashrc
 
 "$(pwd)/julia-1.10.0/bin/julia" -e 'using Pkg; Pkg.add(["ArgParse", "FASTX", "BioStructures", "BioSequences", "LogExpFunctions", "Pandas"])'

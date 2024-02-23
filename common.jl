@@ -109,7 +109,7 @@ function print_runtime(var, start_time, unit, msg)
     print_log(var, runtime_msg; time=end_time)
 end
 
-function print_log(var, msg; time)
+function print_log(var, msg; time=now())
     if haskey(var, "log_file")
         log_str = "$(Dates.format(time, "yyyy-mm-dd HH:MM:SS")) $(msg)"
         write_file(var["log_file"], log_str)
@@ -133,6 +133,7 @@ function process_input(input, input_type, start_time; input_conditions=default_i
     else
         throw(ErrorException("Input not found"))
     end
+    println("Finished input conditions")
 end
 
 function process_str_input(input, input_conditions, script_args)
@@ -272,9 +273,7 @@ function input_dir_out_preprocess!(var, fname; fext="", cdir="", basedir="")
     if !isempty(fext)
         output_basename = "$(fname)$(fext)"
     end
-    if !haskey(var, "abs_output_dir")
-        var["abs_output_dir"] = keep_input_dir_structure(var["abs_input"], var["abs_output"], basedir, cdir)
-    end
+    var["abs_output_dir"] = keep_input_dir_structure(var["abs_input"], var["abs_output"], basedir, cdir)
     output_file = joinpath(var["abs_output_dir"], output_basename)
     if haskey(var, "output_files")
         push!(var["output_files"], output_file)
@@ -309,9 +308,8 @@ function isURL(url)
 end
 
 function clean_variables!(var)
-    delete!(var, "output_file")
-    delete!(var, "abs_output_dir")
-    delete!(var, "error_file")
+    delete!(var, "output_files")
+    delete!(var, "error_files")
 end
 
 function write_file(file, msg; type="a")

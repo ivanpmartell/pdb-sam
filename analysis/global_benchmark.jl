@@ -30,9 +30,9 @@ function parse_commandline()
 end
 
 function into_tool_dict!(d, t, id, rec)
-    try
+    if haskey(d, t)
         d[t][id] = rec
-    catch e
+    else
         d[t] = Dict(id => rec)
     end
 end

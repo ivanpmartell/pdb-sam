@@ -53,6 +53,7 @@ cd $current_dir
 echo "IMPORTANT: MODIFY run_spot1d.sh script with local paths"
 
 #Databases
+sudo apt install perl
 mkdir databases
 cd databases
 wget https://wwwuser.gwdg.de/~compbiol/data/hhsuite/databases/hhsuite_dbs/old-releases/uniprot20_2013_03.tar.gz

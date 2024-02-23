@@ -39,9 +39,9 @@ function check_fasta_file(check_file, dir, cluster_fas)
             for fa_rec in cluster_fas
                 fa_rec_id = lowercase(first(split(identifier(fa_rec), '_')))
                 if occursin(fa_rec_id, lowercase(identifier(check_record)))
-                    try
+                    if haskey(duplicates, dir)
                         push!(duplicates[dir], fa_rec)
-                    catch e
+                    else
                         duplicates[dir] = [fa_rec]
                     end
                 end
@@ -59,9 +59,9 @@ function check_txt_file(check_file, dir, cluster_fas)
                 fa_rec_id = lowercase(first(split(identifier(fa_rec), '_')))
                 check_rec_id = lowercase(first(split(check_record, '_')))
                 if occursin(fa_rec_id, check_rec_id)
-                    try
+                    if haskey(duplicates, dir)
                         push!(duplicates[dir], fa_rec)
-                    catch e
+                    else
                         duplicates[dir] = [fa_rec]
                     end
                 end
