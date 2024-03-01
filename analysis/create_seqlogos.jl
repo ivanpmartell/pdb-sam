@@ -64,7 +64,7 @@ function commands(args, var)
             for i in eachindex(seq)
                 aa = seq[i]
                 if is_standard(aa)
-                    freqs[aa_index(aa, length(var["aminoacid_alphabet"], i)] += 1
+                    freqs[aa_index(aa, length(var["aminoacid_alphabet"]), i) += 1
                 end
             end
         end

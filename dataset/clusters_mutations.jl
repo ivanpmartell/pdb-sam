@@ -6,7 +6,7 @@ using LogExpFunctions: xlogy
 using SparseArrays
 include("../common.jl")
 include("../seq_common.jl")
-
+#SCRIPT obsolete. Use analysis/mutations.jl
 function parse_commandline()
     s = ArgParseSettings()
     @add_arg_table! s begin

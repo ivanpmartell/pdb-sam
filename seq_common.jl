@@ -2,8 +2,41 @@ using FASTX
 using BioSequences
 using LogExpFunctions: xlogy, xlogx
 using SparseArrays
+using DelimitedFiles
+using DataFrames
 
-function get_sequences_length(input_file)
+struct Mutation
+    from::Char
+    position::Int64
+    to::Char
+    proteins::Vector{String}
+end
+
+mutation_location(m::Mutation) = return m.position
+
+function get_sequences_length(records::Dict{String, FASTX.FASTA.Record})
+    len = length(sequence(last(first(records))))
+    for i in eachindex(records)
+        seq = sequence(records[i])
+        if length(seq) !== len
+            throw(ErrorException("Alignment file contains unequal length sequences"))
+        end
+    end
+    return len
+end
+
+function get_sequences_length(records::Vector{FASTX.FASTA.Record})
+    len = length(sequence(first(records)))
+    for i in 2:length(records)
+        seq = sequence(record[i])
+        if length(seq) !== len
+            throw(ErrorException("Alignment file contains unequal length sequences"))
+        end
+    end
+    return len
+end
+
+function get_sequences_length(input_file::String)
     FASTA.Reader(open(input_file)) do reader
         for record in reader
             return length(sequence(record))
@@ -11,10 +44,20 @@ function get_sequences_length(input_file)
     end
 end
 
-function collect_fasta(input_file)
+function fasta_vector(input_file)
     records = Vector{FASTX.FASTA.Record}()
     FASTA.Reader(open(input_file)) do reader
         records = collect(reader)
+    end
+    return records
+end
+
+function fasta_dict(input_file)
+    records = Dict{String, FASTX.FASTA.Record}()
+    FASTA.Reader(open(input_file)) do reader
+        for record in reader
+            records[identifier(record)] = record
+        end
     end
     return records
 end
@@ -50,11 +93,6 @@ function seqlogo_matrix(p::AbstractMatrix)
     return transpose(H)
 end
 
-function findmin_view(x,b)
-    v = view(x,b)
-    return first(parentindices(v))[argmax(v)]
-end
-
 function max_in_column(m, column)
     v = view(m, :, column)
     return first(parentindices(v))[argmax(v)]
@@ -62,11 +100,15 @@ end
 
 function calculate_frequency_matrix(records, aa_str)
     aa_alphabet_len = length(aa_str)
+    cluster_seqs_len = length(sequence(LongAA, first(records)))
     freqs = zeros(Int, (aa_alphabet_len, cluster_seqs_len))
     for record in records
         seq = sequence(LongAA, record)
         for i in eachindex(seq)
             aa = seq[i]
+            if !is_standard(aa)
+                throw(ErrorException("Non-standard aminoacid found: $(aa)"))
+            end
             freqs[aa_index(aa, aa_alphabet_len, i)] += 1
         end
     end
@@ -83,15 +125,67 @@ function calculate_consensus_sequence(frequency_matrix, aa_str)
 end
 
 function match_consensus(records, consensus_seq)
+    cluster_seqs_len = length(sequence(LongAA, first(records)))
     matching_matrix = zeros(Int, (length(records), cluster_seqs_len))
-    for idx, record in enumerate(records)
-        seq = sequence(LongAA, record)
+    for (idx, record) in enumerate(records)
+        seq = sequence(String, record)
         for i in eachindex(seq)
             if consensus_seq[i] == seq[i]
                 matching_matrix[idx, i] += 1
             end
         end
     end
-    consensus_idx = first(argmax(sum(matching_matrix, dims=2)))
+    matches = sum(matching_matrix, dims=2)
+    consensus_idx = argmax(matches)[1]
+    if matches[consensus_idx] < cluster_seqs_len
+        println("No consensus match. Using closest sequence: $(identifier(records[consensus_idx]))")
+    end
     return records[consensus_idx]
+end
+
+function read_mutations(mutation_file)
+    mutations = Vector{Mutation}()
+    open(mutation_file, "r") do reader
+        for mutation in readlines(reader)
+            pos_regex = r"(\w)(\d+)(\w) \[(.*)\]"
+            from_str, pos_str, to_str, proteins = match(pos_regex, mutation).captures
+            proteins_list = split(replace(proteins, r"[\" ]"=>""), ",")
+            position = parse(Int64, pos_str)
+            from = only(from_str)
+            to = only(to_str)
+            mut = Mutation(from, position, to, proteins_list)
+            push!(mutations, mut)
+        end
+    end
+    return mutations
+end
+
+function mutations_in_protein(mutations::Vector{Mutation}, protein)
+    muts = Vector{Mutation}()
+    for mut in mutations
+        if protein in mut.proteins
+            push!(muts, mut)
+        end
+    end
+    return muts
+end
+
+function proteins_from_mutation(mutations::Vector{Mutation})
+    return mutations.proteins
+end
+
+function read_consensus(consensus_file)
+    data = readdlm(consensus_file, ' ')
+    df = DataFrame(data, ["protein", "seq_type"])
+    return df
+end
+
+function get_consensus(con_mut_df)
+    return first(con_mut_df[con_mut_df.seq_type .== "consensus",:].protein)
+end
+
+function get_consensus_sequence(consensus_file)
+    consensus_df = read_consensus(consensus_file)
+    consensus_protein = get_consensus(consensus_df)
+    return sequence(records[consensus_protein])
 end

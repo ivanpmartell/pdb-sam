@@ -7,16 +7,16 @@ function monitor_process(script_args, commands; input_conditions=default_input_c
     print_log(var, "Starting work on $(var["abs_input"])"; time=start_time)
     counter = 0
     error_counter = 0
-    input_files = process_input(var["abs_input"], input_type, start_time; input_conditions=input_conditions, script_args=script_args, nested=nested)
+    input_files = process_input(var["abs_input"], input_type; input_conditions=input_conditions, script_args=script_args, nested=nested)
     print_runtime(var, start_time, "sec", "Found $(length(input_files)) files that satisfy input conditions")
     for input in ProgressBar(input_files)
         iter_start_time = now()
         counter += 1
-        if isone(length(input_files))
+        var["input_path"] = joinpath(var["abs_input"], input)
+        if !isfile(var["input_path"])
             var["input_path"] = input
-        else
-            var["input_path"] = joinpath(var["abs_input"], input)
         end
+        var["abs_input_dir"] = dirname(var["input_path"])
         var["input_basename"] = basename(input)
         var["input_noext"] = remove_ext(var["input_basename"])
         preprocess(script_args, var) #Define output_files, error_files, abs_output_dir
@@ -125,7 +125,7 @@ function joinpaths(paths::Union{Tuple{AbstractString}, AbstractVector{AbstractSt
     joinpath(joinpaths(paths[1:end-1]), last(paths))
 end
 
-function process_input(input, input_type, start_time; input_conditions=default_input_condition, script_args=Dict(), nested=false)
+function process_input(input, input_type; input_conditions=default_input_condition, script_args=Dict(), nested=false)
     if isfile(input) || isURL(input)
         return process_str_input(input, input_conditions, script_args)
     elseif isdir(input)
@@ -271,7 +271,7 @@ function input_dir_out_preprocess!(var, fname; fext="", cdir="", basedir="")
     end
     output_basename = "$(fname)"
     if !isempty(fext)
-        output_basename = "$(fname)$(fext)"
+        output_basename *= "$(fext)"
     end
     var["abs_output_dir"] = keep_input_dir_structure(var["abs_input"], var["abs_output"], basedir, cdir)
     output_file = joinpath(var["abs_output_dir"], output_basename)
