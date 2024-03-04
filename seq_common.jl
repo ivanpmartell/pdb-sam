@@ -52,6 +52,12 @@ function fasta_vector(input_file)
     return records
 end
 
+function read_fasta(input_file)
+    FASTA.Reader(open(input_file)) do reader
+        return first(reader)
+    end
+end
+
 function fasta_dict(input_file)
     records = Dict{String, FASTX.FASTA.Record}()
     FASTA.Reader(open(input_file)) do reader
@@ -184,8 +190,30 @@ function get_consensus(con_mut_df)
     return first(con_mut_df[con_mut_df.seq_type .== "consensus",:].protein)
 end
 
-function get_consensus_sequence(consensus_file)
+function get_consensus_sequence(consensus_file, records)
     consensus_df = read_consensus(consensus_file)
     consensus_protein = get_consensus(consensus_df)
     return sequence(records[consensus_protein])
+end
+
+function pm1(a, side)
+    return side == 'l' ? a - 1 : a + 1
+end
+
+function get_neighbor_ss(seq, pos, side, amt)
+    starting_ss = seq[pos]
+    current_ss = seq[pos]
+    current_pos = pos
+    for i in 1:amt
+        while current_ss == starting_ss
+            try
+                current_pos = pm1(current_pos, side)
+                current_ss = seq[current_pos]
+            catch e
+                break
+            end
+        end
+        starting_ss = current_ss
+    end
+    return current_pos
 end

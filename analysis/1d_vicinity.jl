@@ -26,7 +26,7 @@ function parse_commandline()
         "--length", "-l"
             help = "Length of amino acid vicinity"
             arg_type = Int
-            default = 10
+            default = 20
     end
     return parse_args(s)
 end
@@ -64,6 +64,7 @@ protein_conditions(a,f) = return has_extension(f, ".fa") && startswith(last(spli
 
 function initialize!(args, var)
     var["fext"] = ".1dv"
+    var["pext"] = ".fa"
     log_initialize!(args,var)
 end
 
@@ -89,25 +90,31 @@ function commands(args, var)
     if args["designation"] == "cluster"
         consensus_df = read_consensus(var["input_path"])
         consensus_protein = get_consensus(consensus_df)
-        protein_file = joinpath(var["abs_input_dir"], "$consensus_protein.fa")
+        protein_file = joinpath(var["abs_input_dir"], "$consensus_protein$(var["pext"])")
     elseif args["designation"] == "protein"
         protein = remove_ext(basename(var["output_file"]))
         filtered_mutations = mutations_in_protein(mutations, protein)
         if length(filtered_mutations) !== 0
             mutations = filtered_mutations
         end
-        protein_file = joinpath(var["abs_input_dir"], "$protein.fa")
+        protein_file = joinpath(var["abs_input_dir"], "$protein$(var["pext"])")
     end
     if !isfile(protein_file)
         throw(ErrorException("Protein sequence file not found: $protein_file"))
     end
     protein_length = get_sequences_length(protein_file)
     mutations_vicinity, full_vicinity, non_vicinity = one_dim_vicinity(args, mutations, protein_length)
-    #TODO: write local and non_local (full_vicinity, non_vicinity)
-    local_file = joinpath(var["abs_output_dir"], "local$(var["fext"])")
-    write_file(local_file, join(full_vicinity,','))
-    non_local_file = joinpath(var["abs_output_dir"], "non_local$(var["fext"])")
-    write_file(non_local_file, join(non_vicinity,','))
+    if args["designation"] == "cluster"
+        local_file = joinpath(var["abs_output_dir"], "local$(var["fext"])")
+        write_file(local_file, join(full_vicinity,','))
+        non_local_file = joinpath(var["abs_output_dir"], "non_local$(var["fext"])")
+        write_file(non_local_file, join(non_vicinity,','))
+    elseif args["designation"] == "protein"
+        local_file = joinpath(var["abs_output_dir"], "proteins_local$(var["fext"])")
+        write_file(local_file, "$(remove_ext(basename(protein_file))) $(join(full_vicinity,','))")
+        non_local_file = joinpath(var["abs_output_dir"], "proteins_non_local$(var["fext"])")
+        write_file(non_local_file, "$(remove_ext(basename(protein_file))) $(join(non_vicinity,','))")
+    end
     for (mut, vicinity) in mutations_vicinity
         write_file(var["output_file"], "$mut $vicinity")
     end

@@ -35,6 +35,10 @@ wget http://dna.cs.miami.edu/SOV/SOV_refine.tar.gz && \
     tar xvf SOV_refine.tar.gz && \
     rm -f SOV_refine.tar.gz
 
+wget https://github.com/PDB-REDO/dssp/releases/download/v4.4.0/mkdssp-4.4.0-linux-x64 && \
+    chmod +x mkdssp-4.4.0-linux-x64 && \
+    mv mkdssp-4.4.0-linux-x64 ncbi-blast-2.15.0+/bin/mkdssp
+
 echo "Add the following folders to PATH inside the ~/.profile and ~/.bashrc file: cd-hit/  cd-hit/cd-hit-auxtools  cd-hit/psi-cd-hit  ncbi-blast-2.15.0+/bin julia-1.8.2/bin"
 echo "Replace pdb-sam with full path to repository folder: PATH=\"pdb-sam/julia-1.8.2/bin:pdb-sam/cd-hit:pdb-sam/cd-hit/cd-hit-auxtools:pdb-sam/cd-hit/psi-cd-hit:pdb-sam/ncbi-blast-2.15.0+/bin:/usr/local/emboss/bin:\$PATH\""
 echo "Add julia and python libraries from README.md"

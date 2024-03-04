@@ -143,6 +143,7 @@ end
 
 function convert_dssp(f_noext, f_path, f_out_path, seq_file, retry)
     id, chain = split(f_noext, '_')
+    #TODO: Remove TRY block and error out
     try
         assign_df, assign_seq = parse_dssp_mmcif(f_path, chain)
         if isempty(assign_df)
@@ -158,7 +159,7 @@ function convert_dssp(f_noext, f_path, f_out_path, seq_file, retry)
         assignment = normalize_dssp_ouput(assign_df, length(assign_seq))
         #Write assignment to .ssfa
         FASTA.Writer(open(f_out_path, "w")) do writer
-            write(writer, FASTA.Record("$(f_noext)_dssp", LongCharSeq(assignment)))
+            write(writer, FASTA.Record("$(f_noext)_dssp", assignment))
         end
     catch e
         if isa(e, ArgumentError)
@@ -190,7 +191,7 @@ function preprocess!(args, var)
 end
 
 function commands(args, var)
-    sequence_file = joinpath(var["abs_output_dir"], "$(var["input_noext"]).fa")
+    sequence_file = joinpath(var["abs_input_dir"], "$(var["input_noext"]).fa")
     convert_dssp(var["input_noext"], var["input_path"], var["output_file"], sequence_file, args["fix"])
 end
 

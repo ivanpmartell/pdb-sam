@@ -1,6 +1,7 @@
 using ArgParse
 using DelimitedFiles, DataFrames
 using BioStructures
+using Graphs, MetaGraphs
 include("../common.jl")
 include("../seq_common.jl")
 
@@ -24,33 +25,53 @@ function parse_commandline()
         "--mutation_file", "-m"
             help = "Mutation file basename"
             default = "mutations.txt"
-        "--angstrom_range", "-a"
-            help = "3D range for vicinity. Default 13"
-            default = 13
+        "--contacts", "-t"
+            help = "Amount of contact links to use as vicinity in contact map"
+            default = 2
     end
     return parse_args(s)
 end
 
-function three_dim_vicinity(args, mutations, protein_structure)
+function contact_vicinity(args, mutations, protein_structure)
     mutations_vicinity = Dict{String, Vector{Int}}()
     full_vicinity = Set{Int}()
-    calphas = collectatoms(protein_structure, calphaselector)
+    cbetas = collectatoms(protein_structure, cbetaselector)
+    # Contact map as graph using conventional Cβ and 8 Å definitions
+    mg = MetaGraph(cbetas, 8.0)
     for mut in mutations
         mut_str = "$(mut.from)$(mut.position)$(mut.to)"
         vicinity = Set{Int}()
-        for at in calphas
-            distance_to_mut = distance(first(first(protein_structure))[mut.position], at)
-            if distance_to_mut <= args["angstrom_range"]
-                push!(vicinity, resnumber(at))
+        current_contacts = [mut.position]
+        layer = 0
+        elementsToDepthIncrease = 1
+        nextElementsToDepthIncrease = 0
+        while !isempty(current_contacts)
+            i = popfirst!(current_contacts)
+            push!(vicinity, i)
+            children = neighbors(mg, i)
+            nextElementsToDepthIncrease += length(children)
+            elementsToDepthIncrease -= 1
+            if elementsToDepthIncrease == 0
+                layer += 1
+                if layer > args["contacts"]
+                    break
+                end
+                elementsToDepthIncrease = nextElementsToDepthIncrease;
+                nextElementsToDepthIncrease = 0;
             end
-       end
+            for c in children
+                if !(c in vicinity)
+                    push!(current_contacts, c)
+                end
+            end
+        end
         sorted_vicinity = sort(collect(vicinity))
         mutations_vicinity[mut_str] = sorted_vicinity
         for i in sorted_vicinity
             push!(full_vicinity, i)
         end
     end
-    non_vicinity = collect(1:length(calphas))
+    non_vicinity = collect(1:length(cbetas))
     deleteat!(non_vicinity, sort(collect(full_vicinity)))
     return mutations_vicinity, sort(collect(full_vicinity)), non_vicinity
 end
@@ -59,7 +80,7 @@ input_conditions(a,f) = return basename(f) == a["consensus"]
 protein_conditions(a,f) = return '_' in basename(f) && has_extension(f, ".cif") && startswith(last(splitdir(dirname(f))), "Cluster")
 
 function initialize!(args, var)
-    var["fext"] = ".3dv"
+    var["fext"] = ".cdv"
     var["pext"] = ".cif"
     log_initialize!(args,var)
 end
@@ -99,7 +120,7 @@ function commands(args, var)
         throw(ErrorException("Protein sequence file not found: $protein_file"))
     end
     protein_structure = read(protein_file, MMCIF)
-    mutations_vicinity, full_vicinity, non_vicinity = three_dim_vicinity(args, mutations, protein_structure)
+    mutations_vicinity, full_vicinity, non_vicinity = contact_vicinity(args, mutations, protein_structure)
     if args["designation"] == "cluster"
         local_file = joinpath(var["abs_output_dir"], "local$(var["fext"])")
         write_file(local_file, join(full_vicinity,','))

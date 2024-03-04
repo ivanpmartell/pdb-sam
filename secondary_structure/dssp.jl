@@ -12,7 +12,7 @@ function parse_commandline()
             required = true
         "--extension", "-e"
             help = "Extension for input files"
-            default = ".mmcif"
+            default = ".cif"
         "--output", "-o"
             help = "Output directory. Ignore to write files in input directory"
 
