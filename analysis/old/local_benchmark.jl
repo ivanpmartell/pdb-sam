@@ -5,8 +5,7 @@ using DataFrames
 using FASTX
 using LogExpFunctions: xlogy
 using SparseArrays
-include("../common.jl")
-#TODO
+
 struct Mutation
     from::String
     position::Int64

@@ -84,7 +84,7 @@ function two_dim_vicinity(args, mutations, protein_ss)
 end
 
 input_conditions(a,f) = return basename(f) == a["consensus"]
-protein_conditions(a,f) = return has_extension(f, ".ssfa") && startswith(last(splitdir(dirname(f))), "Cluster")
+protein_conditions(a,f) = return has_extension(f, ".ssfa") && startswith(parent_dir(f), "Cluster")
 
 function initialize!(args, var)
     var["fext"] = ".2dv"

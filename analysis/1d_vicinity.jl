@@ -60,7 +60,7 @@ function one_dim_vicinity(args, mutations, protein_length)
 end
 
 input_conditions(a,f) = return basename(f) == a["consensus"]
-protein_conditions(a,f) = return has_extension(f, ".fa") && startswith(last(splitdir(dirname(f))), "Cluster")
+protein_conditions(a,f) = return has_extension(f, ".fa") && startswith(parent_dir(f), "Cluster")
 
 function initialize!(args, var)
     var["fext"] = ".1dv"

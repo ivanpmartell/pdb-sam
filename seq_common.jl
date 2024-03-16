@@ -44,6 +44,18 @@ function get_sequences_length(input_file::String)
     end
 end
 
+function ss_fasta_vector(input_dir, fext)
+    records = Vector{FASTX.FASTA.Record}()
+    for f in process_input(input_dir, 'f'; input_conditions=(a,x)->has_extension(x, fext), silence=true)
+        FASTA.Reader(open(joinpath(input_dir, f))) do reader
+            for record in reader
+                push!(records, record)
+            end
+        end
+    end
+    return records
+end
+
 function fasta_vector(input_file)
     records = Vector{FASTX.FASTA.Record}()
     FASTA.Reader(open(input_file)) do reader
@@ -72,6 +84,10 @@ function is_standard(aa::AminoAcid)
     return AA_A ≤ aa ≤ AA_V
 end
 
+function ss_alphabet_str()
+    return "CHEGITSB"
+end
+
 function aa_alphabet_str()
     alphabet_string = ""
     for aa in alphabet(AminoAcid)
@@ -85,6 +101,10 @@ end
 
 function aa_index(aa::AminoAcid, aa_len, i)
     return reinterpret(UInt8, aa) + aa_len*(i-1) + 1
+end
+
+function ss_index(ss::Char, ss_str::String)
+    return findfirst(ss, ss_str)
 end
 
 function info_matrix(p::AbstractMatrix)
@@ -116,6 +136,23 @@ function calculate_frequency_matrix(records, aa_str)
                 throw(ErrorException("Non-standard aminoacid found: $(aa)"))
             end
             freqs[aa_index(aa, aa_alphabet_len, i)] += 1
+        end
+    end
+    return freqs
+end
+
+function calculate_ss_frequency_matrix(records, ss_str)
+    ss_alphabet_len = length(ss_str)
+    cluster_seqs_len = length(sequence(String, first(records)))
+    freqs = zeros(Int, (ss_alphabet_len, cluster_seqs_len))
+    for record in records
+        seq = sequence(String, record)
+        for i in eachindex(seq)
+            ss = seq[i]
+            if !(ss in ss_str)
+                throw(ErrorException("Non-secondary structure found at $i: $(ss)"))
+            end
+            freqs[ss_index(ss, ss_str),i] += 1
         end
     end
     return freqs
@@ -180,6 +217,21 @@ function proteins_from_mutation(mutations::Vector{Mutation})
     return mutations.proteins
 end
 
+function read_vicinity_file(vicinity_file)
+    return vec(readdlm(vicinity_file, ',', Int))
+end
+
+function read_mutations_vicinity_file(mut_vic_file)
+    result = Dict{String, Vector{Int}}()
+    for line in eachline(mut_vic_file)
+        row = split(line, ' ', limit=2)
+        data = filter(x -> !isspace(x), last(row))
+        vicinity_str = split(strip(data,['[', ']']),',')
+        result[first(row)] = parse.(Int, vicinity_str)
+    end
+    return result
+end
+
 function read_consensus(consensus_file)
     data = readdlm(consensus_file, ' ')
     df = DataFrame(data, ["protein", "seq_type"])
@@ -216,4 +268,19 @@ function get_neighbor_ss(seq, pos, side, amt)
         starting_ss = current_ss
     end
     return current_pos
+end
+
+function mask_non_consecutive(seq, indices::Vector{Int})
+    splits = split_non_consecutive(indices)
+    return join([seq[splits[i]] for i in eachindex(splits)], 'X')
+end
+
+function split_non_consecutive(indices, step=1)
+    split_result = []
+    split_idx = vcat(0, findall(==(1), diff(indices) .!= step), length(indices))
+
+    for i in 1:length(split_idx)-1
+        push!(split_result, indices[split_idx[i]+1:split_idx[i+1]])
+    end
+    return split_result
 end

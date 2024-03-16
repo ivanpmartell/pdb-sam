@@ -13,7 +13,7 @@ function monitor_process(script_args, commands; input_conditions=default_input_c
         iter_start_time = now()
         counter += 1
         var["input_path"] = joinpath(var["abs_input"], input)
-        if !isfile(var["input_path"])
+        if isURL(var["input_path"])
             var["input_path"] = input
         end
         var["abs_input_dir"] = dirname(var["input_path"])
@@ -53,10 +53,8 @@ function monitor_process(script_args, commands; input_conditions=default_input_c
         clean_variables!(var)
     end
     finalize(script_args, var)
-    if counter > 1
-        print_runtime(var, start_time, runtime_unit, "Finished on $(var["abs_input"])")
-        print_log(var, "$(error_counter) errors found in $(counter) files")
-    end
+    print_runtime(var, start_time, runtime_unit, "Finished on $(var["abs_input"])")
+    print_log(var, "$(error_counter) errors found in $(counter) files")
 end
 
 function work_on_single(script_args, run_cmds; in_conditions=default_input_condition, initialize=log_initialize!, preprocess=default_var_procedure, postprocess=default_var_procedure, finalize=default_var_procedure, runtime_unit="min")
@@ -125,11 +123,11 @@ function joinpaths(paths::Union{Tuple{AbstractString}, AbstractVector{AbstractSt
     joinpath(joinpaths(paths[1:end-1]), last(paths))
 end
 
-function process_input(input, input_type; input_conditions=default_input_condition, script_args=Dict(), nested=false)
+function process_input(input, input_type; input_conditions=default_input_condition, script_args=Dict(), nested=false, silence=false)
     if isfile(input) || isURL(input)
         return process_str_input(input, input_conditions, script_args)
     elseif isdir(input)
-        return walk_directory(input_type, input, input_conditions, script_args, nested)
+        return walk_directory(input_type, input, input_conditions, script_args, nested, silence)
     else
         throw(ErrorException("Input not found"))
     end
@@ -144,9 +142,13 @@ function process_str_input(input, input_conditions, script_args)
     end
 end
 
-function walk_directory(input_type, input_dir, input_conditions, script_args, nested)
+function walk_directory(input_type, input_dir, input_conditions, script_args, nested, silence)
     inputs = Vector{String}()
-    for p in ProgressBar(readdir(input_dir))
+    files_to_explore = readdir(input_dir)
+    if !silence
+        files_to_explore = ProgressBar(readdir(input_dir))
+    end
+    for p in files_to_explore
         path = joinpath(input_dir, p)
         if isdir(path)
             if input_type == 'd'
@@ -258,6 +260,10 @@ function get_relpath(dir, path)
     return lstrip(path[length(dir)+1:end], '/')
 end
 
+function parent_dir(path)
+    return basename(dirname(path))
+end
+
 function no_output_equals_input(input, output)
     if isnothing(output)
         output = input
@@ -316,6 +322,12 @@ function write_file(file, msg; type="a")
     open(file, type) do f
         println(f, msg)
     end
+end
+
+function get_prediction_methods()
+    tertiary_methods = ["af2", "colabfold", "esmfold", "rgn2"]
+    secondary_methods = ["raptorx", "sspro8", "spot1d", "spot1d_lm", "spot1d_single"]
+    return [secondary_methods ; tertiary_methods]
 end
 
 default_input_condition(args::Dict{Any, Any}, path::String) = return true

@@ -181,9 +181,8 @@ function commands(args, var)
     seqs_length = length(sequence(LongAA, records[1]))
     aa_coverage = get_seq_coverage(records, seqs_length)
     # Find records that do not contribute to the mutations (gap or all mutations in seq are contained in another one)
-    #Remove if covered previously TODO: also sort by gap count
+    #TODO: sort by gap count
     indispensable_seqs = get_indispensable_seqs(aa_coverage, seqs_length)
-    #TODO: remove unnecessary records (remake files if they change and delete according cif files)
     keep_indispensable_seqs(records, indispensable_seqs, var["output_file"], var["input_path"])
 end
 

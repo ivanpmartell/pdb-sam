@@ -100,7 +100,6 @@ function commands(args, var)
     if !isempty(duplicates)
         var["amount_dups"] += 1
         println("Amount of duplicates: $(duplicates)")
-        #TODO:Write to file (.csv)
     end
 end
 

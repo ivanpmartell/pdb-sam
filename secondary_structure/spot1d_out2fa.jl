@@ -23,7 +23,7 @@ function parse_commandline()
     return parse_args(s)
 end
 
-input_conditions(a,f) = return has_extension(f, a["extension"]) && last(splitdir(dirname(f))) == "spot1d"
+input_conditions(a,f) = return has_extension(f, a["extension"]) && parent_dir(f) == "spot1d"
 
 function preprocess!(args, var)
     input_dir_out_preprocess!(var, var["input_noext"]; fext=".sspfa")
@@ -38,7 +38,7 @@ function commands(args, var)
     pred_str = join(pred_array)
     #Write fasta file with single record id from filename
     FASTA.Writer(open(var["output_file"], "w")) do writer
-        write(writer, FASTA.Record("$(var["input_noext"])_spot1d", LongCharSeq(pred_str)))
+        write(writer, FASTA.Record("$(var["input_noext"])_spot1d", pred_str))
     end
 end
 

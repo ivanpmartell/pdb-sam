@@ -14,14 +14,14 @@ julia dataset/align_fasta.jl -i ungapped_mmcifs
 julia clean_cifs.jl -i ungapped_mmcifs/ -o cleaned_ungapped_mmcifs
 julia pristine_cifs.jl -i cleaned_ungapped_mmcifs/ -o pristine_mmcifs -e .ala -n
 #Secondary structure assignment (DSSP)
-julia download_cifs.jl -i pristine_mmcifs/ -d -n #CHANGE TO DSSP.jl
+julia secondary_structure/dssp.jl -i pristine_mmcifs/
 #Secondary structure prediction on pristine mmcifs
 julia secondary_structure/raptorx.jl -i pristine_mmcifs/ -e .fa -r /storage/ssp-tools/2dstruc/Predict_Property/
 julia secondary_structure/sspro8.jl -i pristine_mmcifs -e .fa -s /storage/ssp-tools/2dstruc/SCRATCH-1D_2.0/
 julia secondary_structure/spot1d.jl -i pristine_mmcifs/ -e .fa -s /storage/ssp-tools/2dstruc/SPOT-1D-local/
 julia secondary_structure/spot1d_single.jl -i pristine_mmcifs/ -e .fa -s /storage/ssp-tools/2dstruc/spot_1d_single/SPOT-1D-Single/
 julia secondary_structure/spot1d_lm.jl -i pristine_mmcifs/ -e .fa -s /storage/ssp-tools/2dstruc/spot_1d_lm/SPOT-1D-LM/
-#(s4pred is only 3-class) julia secondary_structure/s4pred.jl -i pristine_mmcifs/ -e .fa -s /storage/ssp-tools/2dstruc/s4pred/
+#julia secondary_structure/s4pred.jl -i pristine_mmcifs/ -e .fa -s /storage/ssp-tools/2dstruc/s4pred/ (s4pred is only 3-class)
 #Normalize predictions to fasta output
 julia secondary_structure/raptorx_out2fa.jl -i pristine_mmcifs/
 julia secondary_structure/spot1d_out2fa.jl -i pristine_mmcifs/
@@ -30,17 +30,17 @@ julia secondary_structure/spot1d_single_out2fa.jl -i pristine_mmcifs/
 julia secondary_structure/sspro8_out2fa.jl -i pristine_mmcifs/
 #Normalize DSSP structure assignment
 julia secondary_structure/dssp_out2fa.jl -i pristine_mmcifs/
-#Agglomerate normalized predictions
+#OLD: Agglomerate normalized predictions
 julia secondary_structure/combine_preds.jl -i pristine_mmcifs/
 julia secondary_structure/combine_preds4record.jl -i pristine_mmcifs/
 julia secondary_structure/combine_preds4tool.jl -i pristine_mmcifs/
-#Create results file
+#OLD: Create results file
 julia clusters_mutations.jl -i pristine_mmcifs/
 julia summarize_clusters.jl -i pristine_mmcifs/
-#(Local)Benchmark of tools (change SOV_refine path)
+#OLD: (Local)Benchmark of tools
 julia local_benchmark.jl -i pristine_mmcifs/ -s /storage/sov_refine/SOV_refine.pl -m
 julia summarize_metrics.jl -i pristine_mmcifs/ -t local
-#(Global)Benchmark of tools (change SOV_refine path)
+#OLD: (Global)Benchmark of tools
 julia global_benchmark.jl -i pristine_mmcifs/ -s /storage/sov_refine/SOV_refine.pl
 julia summarize_metrics.jl -i pristine_mmcifs/ -t global
 #Tertiary structure prediction on pristine mmcifs
@@ -48,3 +48,18 @@ julia tertiary_structure/af2.jl -i pristine_mmcifs/ -e .fa -a /storage/alphafold
 julia tertiary_structure/esmfold.jl -i pristine_mmcifs/ -e .fa -m esm-fold
 julia tertiary_structure/rgn2.jl -i pristine_mmcifs/ -e .fa -r /storage/rgn2/ -c /storage/conda/
 julia tertiary_structure/colabfold.jl -i pristine_mmcifs/ -e .fa -c colabfold_batch -t /storage/colabfold_output
+#Obtain secondary structure results from tertiary structure predictions
+julia tertiary_structure/pdb_to_cif.jl -i pristine_mmcifs/
+julia tertiary_structure/dssp_2d_transform.jl -i pristine_mmcifs/
+julia secondary_structure/dssp_out2fa.jl -i pristine_mmcifs/ -e .pdb.mmcif -x .sspfa -f -p
+#Obtain local and non-local vicinity
+julia analysis/1d_vicinity.jl -i pristine_mmcifs/
+#julia analysis/1d_vicinity.jl -i pristine_mmcifs/ -d protein
+julia analysis/2d_vicinity.jl -i pristine_mmcifs/
+#julia analysis/2d_vicinity.jl -i pristine_mmcifs/ -d protein
+julia analysis/3d_vicinity.jl -i pristine_mmcifs/
+#julia analysis/3d_vicinity.jl -i pristine_mmcifs/ -d protein
+julia analysis/contact_vicinity.jl -i pristine_mmcifs/
+#julia analysis/contact_vicinity.jl -i pristine_mmcifs/ -d protein
+#Get metrics for cluster (local, non-local, global)
+julia analysis/ss_metrics.jl -i pristine_mmcifs/

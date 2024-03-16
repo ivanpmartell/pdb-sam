@@ -20,8 +20,13 @@ function parse_commandline()
             default = ".mmcif"
         "--output", "-o"
             help = "Output directory where the prediction fasta file will be written. Ignore to use input directory"
+        "--output_extension", "-x"
+            default = ".ssfa"
         "--fix", "-f"
             help = "Fix DSSP output files in case of quoting formatting error"
+            action = :store_true
+        "--predicted", "-p"
+            help = "Use for predicted tertiary structures"
             action = :store_true
     end
     return parse_args(s)
@@ -141,9 +146,13 @@ function fix_dssp_formatting_errors(cif_path, dssp_out_path)
     mv(tmppath, dssp_out_path, force=true)
 end
 
-function convert_dssp(f_noext, f_path, f_out_path, seq_file, retry)
+function convert_dssp(f_noext, f_path, f_out_path, seq_file, predicted, retry)
     id, chain = split(f_noext, '_')
-    #TODO: Remove TRY block and error out
+    tool = "dssp"
+    if predicted
+        chain = "A"
+        tool = last(split(dirname(f_path), '/'))
+    end
     try
         assign_df, assign_seq = parse_dssp_mmcif(f_path, chain)
         if isempty(assign_df)
@@ -157,29 +166,31 @@ function convert_dssp(f_noext, f_path, f_out_path, seq_file, retry)
             end
         end
         assignment = normalize_dssp_ouput(assign_df, length(assign_seq))
-        #Write assignment to .ssfa
+        #Write ss assignment file
         FASTA.Writer(open(f_out_path, "w")) do writer
-            write(writer, FASTA.Record("$(f_noext)_dssp", assignment))
+            write(writer, FASTA.Record("$(f_noext)_$(tool)", assignment))
         end
     catch e
         if isa(e, ArgumentError)
-            if retry && startswith(e.msg, "Opening quote")
-                root = dirname(f_path)
-                cif_path = joinpath(root, "$(uppercase(id)).cif")
+            root = dirname(f_path)
+            cif_path = joinpath(root, "$(uppercase(id)).cif")
+            if retry
                 if isfile(cif_path)
-                    fix_dssp_formatting_errors(cif_path, f_path)
-                    convert_dssp(f_noext, f_path, f_out_path, seq_file, false)
+                    if startswith(e.msg, "Opening quote")
+                        fix_dssp_formatting_errors(cif_path, f_path)
+                        convert_dssp(f_noext, f_path, f_out_path, seq_file, predicted, false)
+                    else
+                        println("Could not fix dssp output format error: $(e)")
+                        throw(e)
+                    end
                 else
                     println("Could not find original cif file: $(cif_path)")
-                    println(e)
                 end
             else
-                println("Tried to fix dssp output unsuccessfully: $(f_path)")
-                println(e)
+                println("Did not attempt to fix dssp format errors. Use -f if needed")
             end
         else
-            println("Error on $(f_path)")
-            println(e)
+            throw(e)
         end
     end
 end
@@ -187,12 +198,12 @@ end
 input_conditions(a,f) = return has_extension(f, a["extension"])
 
 function preprocess!(args, var)
-    input_dir_out_preprocess!(var, var["input_noext"]; fext=".ssfa")
+    input_dir_out_preprocess!(var, var["input_noext"]; fext=args["output_extension"])
 end
 
 function commands(args, var)
     sequence_file = joinpath(var["abs_input_dir"], "$(var["input_noext"]).fa")
-    convert_dssp(var["input_noext"], var["input_path"], var["output_file"], sequence_file, args["fix"])
+    convert_dssp(var["input_noext"], var["input_path"], var["output_file"], sequence_file, args["predicted"], args["fix"])
 end
 
 function main()::Cint

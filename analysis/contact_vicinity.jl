@@ -77,7 +77,7 @@ function contact_vicinity(args, mutations, protein_structure)
 end
 
 input_conditions(a,f) = return basename(f) == a["consensus"]
-protein_conditions(a,f) = return '_' in basename(f) && has_extension(f, ".cif") && startswith(last(splitdir(dirname(f))), "Cluster")
+protein_conditions(a,f) = return '_' in basename(f) && has_extension(f, ".cif") && startswith(parent_dir(f), "Cluster")
 
 function initialize!(args, var)
     var["fext"] = ".cdv"

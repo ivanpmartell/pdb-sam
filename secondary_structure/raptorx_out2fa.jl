@@ -23,14 +23,14 @@ function parse_commandline()
     return parse_args(s)
 end
 
-input_conditions(a,f) = return has_extension(f, a["extension"]) && last(splitdir(dirname(f))) == "raptorx"
+input_conditions(a,f) = return has_extension(f, a["extension"]) && parent_dir(f) == "raptorx"
 
 function preprocess!(args, var)
     input_dir_out_preprocess!(var, var["input_noext"]; fext=".sspfa")
 end
 
-function commands(f_path, f_noext, f_out)
-    delimited = readdlm(f_path, ' ', comments=true)
+function commands(args, var)
+    delimited = readdlm(var["input_path"], ' ', comments=true)
     predictions = Matrix{Any}(undef, size(delimited, 1), 11)
     for i in axes(delimited, 1)
         predictions[i, :] = filter(!isempty, delimited[i, :])
@@ -40,8 +40,8 @@ function commands(f_path, f_noext, f_out)
     pred_array = pred_df[:, "ss8"]
     pred_str = join(pred_array)
     #Write fasta file with single record id from filename
-    FASTA.Writer(open(f_out, "w")) do writer
-        write(writer, FASTA.Record("$(f_noext)_raptorx", LongCharSeq(pred_str)))
+    FASTA.Writer(open(var["output_file"], "w")) do writer
+        write(writer, FASTA.Record("$(var["input_noext"])_raptorx", pred_str))
     end
 end
 

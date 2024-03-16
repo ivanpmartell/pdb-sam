@@ -38,12 +38,12 @@ function three_dim_vicinity(args, mutations, protein_structure)
     for mut in mutations
         mut_str = "$(mut.from)$(mut.position)$(mut.to)"
         vicinity = Set{Int}()
-        for at in calphas
-            distance_to_mut = distance(first(first(protein_structure))[mut.position], at)
+        for i in eachindex(calphas)
+            distance_to_mut = distance(calphas[mut.position], calphas[i])
             if distance_to_mut <= args["angstrom_range"]
-                push!(vicinity, resnumber(at))
+                push!(vicinity, i)
             end
-       end
+        end
         sorted_vicinity = sort(collect(vicinity))
         mutations_vicinity[mut_str] = sorted_vicinity
         for i in sorted_vicinity
@@ -51,12 +51,13 @@ function three_dim_vicinity(args, mutations, protein_structure)
         end
     end
     non_vicinity = collect(1:length(calphas))
-    deleteat!(non_vicinity, sort(collect(full_vicinity)))
-    return mutations_vicinity, sort(collect(full_vicinity)), non_vicinity
+    sorted_full_vicinity = sort(collect(full_vicinity))
+    deleteat!(non_vicinity, sorted_full_vicinity)
+    return mutations_vicinity, sorted_full_vicinity, non_vicinity
 end
 
 input_conditions(a,f) = return basename(f) == a["consensus"]
-protein_conditions(a,f) = return '_' in basename(f) && has_extension(f, ".cif") && startswith(last(splitdir(dirname(f))), "Cluster")
+protein_conditions(a,f) = return '_' in basename(f) && has_extension(f, ".cif") && startswith(parent_dir(f), "Cluster")
 
 function initialize!(args, var)
     var["fext"] = ".3dv"

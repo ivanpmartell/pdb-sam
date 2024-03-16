@@ -28,7 +28,7 @@ function parse_commandline()
     return parse_args(s)
 end
 
-input_conditions(a,f) = return has_extension(f, a["in_extension"]) && startswith(last(splitdir(dirname(f))), "Cluster")
+input_conditions(a,f) = return has_extension(f, a["in_extension"]) && startswith(parent_dir(f), "Cluster")
 
 function preprocess!(args, var)
     input_dir_out_preprocess!(var, var["input_noext"]; fext=args["res_extension"], cdir=args["output_dir"])

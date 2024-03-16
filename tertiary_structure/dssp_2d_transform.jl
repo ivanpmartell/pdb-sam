@@ -11,8 +11,8 @@ function parse_commandline()
             help = "Input directory"
             required = true
         "--extension", "-e"
-            help = "Extension for input files. Usually '.pdb.cif'"
-            required = true
+            help = "Extension for input files"
+            default = ".pdb.cif"
         "--output", "-o"
             help = "Output directory. Ignore to write files in input directory"
 

@@ -20,7 +20,7 @@ function parse_commandline()
     return parse_args(s)
 end
 
-input_conditions(a,f) = return has_extension(f, a["extension"]) && startswith(last(splitdir(dirname(f))), "Cluster")
+input_conditions(a,f) = return has_extension(f, a["extension"]) && startswith(parent_dir(f), "Cluster")
 
 function initialize!(args, var)
     log_initialize!(args, var)

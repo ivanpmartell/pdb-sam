@@ -30,7 +30,7 @@ function readsspro8(pred_path)
     end
 end
 
-input_conditions(a,f) = return has_extension(f, a["extension"]) && last(splitdir(dirname(f))) == "sspro8"
+input_conditions(a,f) = return has_extension(f, a["extension"]) && parent_dir(f) == "sspro8"
 
 function preprocess!(args, var)
     input_dir_out_preprocess!(var, var["input_noext"]; fext=".sspfa")
@@ -39,7 +39,7 @@ end
 function commands(args, var)
     seq, pred_str = readsspro8(var["input_path"])
     FASTA.Writer(open(var["output_file"], "w")) do writer
-        write(writer, FASTA.Record("$(var["input_noext"])_sspro8", LongCharSeq(pred_str)))
+        write(writer, FASTA.Record("$(var["input_noext"])_sspro8", pred_str))
     end
 end
 

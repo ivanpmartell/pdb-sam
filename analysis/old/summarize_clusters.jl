@@ -2,8 +2,7 @@ using ArgParse
 using ProgressBars
 using FASTX
 using BioSequences
-include("../common.jl")
-#TODO
+
 function parse_commandline()
     s = ArgParseSettings()
     @add_arg_table! s begin
@@ -168,7 +167,7 @@ for (root, dirs, files) in ProgressBar(walkdir(parsed_args["input"]))
                 mutation_aas = Set([from, to])
                 ss_range = 1:1
                 open(f_out_path, "a") do writer
-                    #TODO: ONLY ADD PROTEINS THAT APPEAR IN MUTATION
+                    #MISSING: ONLY ADD PROTEINS THAT APPEAR IN MUTATION
                     for protein in cluster_records
                         id = identifier(protein)
                         current_ss_range = get_secondary_struct_range(cluster_results[id]["dssp"], position)
