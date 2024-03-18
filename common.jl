@@ -330,6 +330,22 @@ function get_prediction_methods()
     return [secondary_methods ; tertiary_methods]
 end
 
+function get_vicinity_type_filename(vicinity, type)
+    ext = ""
+    if type == "1d"
+        ext = ".1dv"
+    elseif type == "2d"
+        ext = ".2dv"
+    elseif type == "3d"
+        ext = ".3dv"
+    elseif type == "contact"
+        ext = ".cdv"
+    else
+        throw(ErrorException("Wrong type"))
+    end
+    return "$vicinity$ext"
+end
+
 default_input_condition(args::Dict{Any, Any}, path::String) = return true
 default_input_condition(args::Dict{String, Any}, path::String) = return true
 default_var_procedure(args::Dict{Any, Any}, vars::Dict{Any, Any}) = return true

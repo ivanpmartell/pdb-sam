@@ -43,75 +43,19 @@ function preprocess!(args, var)
     input_dir_out_preprocess!(var, "rgn2_fix_vicinity"; fext=".metrics", cdir=var["input_basename"])
 end
 
-function read_metrics(var, sov_refine_output)
-    results = Dict{String, Float32}()
-    for line in split(sov_refine_output, '\n')
-        line_split = split(line, '\t')
-        if first(line_split) in var["metrics"]
-            results[first(line_split)] = parse(Float32, last(line_split))
-        end
-    end
-    return results
-end
-
-function get_vicinity_type_filename(vicinity, type)
-    ext = ""
-    if type == "1d"
-        ext = ".1dv"
-    elseif type == "2d"
-        ext = ".2dv"
-    elseif type == "3d"
-        ext = ".3dv"
-    elseif type == "contact"
-        ext = ".cdv"
-    else
-        throw(ErrorException("Wrong type"))
-    end
-    return "$vicinity$ext"
-end
-
-function write_temp(name, seq)
-    tmp_file = tempname()
-    FASTA.Writer(open(tmp_file, "w")) do writer
-        write(writer, FASTA.Record(name, seq))
-    end
-    return tmp_file
-end
-
-function get_metrics(args, var, file_ref, file_pred)
-    cmd = pipeline(`$(args["sov_refine"]) $(file_ref) $(file_pred)`, stderr=devnull)
-    output = read(cmd, String)
-    return read_metrics(var, output)
-end
-
-function create_temp_files(args, indices, ref_sequence, pred_sequence, protein_name)
-    tmp_ref = ""
-    tmp_pred = ""
-    if args["mask"]
-        ref_masked = mask_non_consecutive(ref_sequence, indices)
-        tmp_ref = write_temp(protein_name, ref_masked)
-        pred_masked = mask_non_consecutive(pred_sequence, indices)
-        tmp_pred = write_temp(protein_name, pred_masked)
-    else
-        tmp_ref = write_temp(protein_name, ref_sequence[indices])
-        tmp_pred = write_temp(protein_name, pred_sequence[indices])
-    end
-    return tmp_ref, tmp_pred
-end
-
 function write_global_metrics(args, var, protein_name, global_metrics, out_file)
     write_file(out_file, "$(var["input_basename"]) $protein_name $(global_metrics["Accuracy"]) $(global_metrics["SOV_99"]) $(global_metrics["SOV_refine"])")
 end
 
 function write_mutations_metrics(args, var, indices, ref_seq, pred_seq, protein_name, mut, type, vicinity, out_file)
-    tmp_ref, tmp_pred = create_temp_files(args, indices, ref_seq, pred_seq, protein_name)
-    metrics = get_metrics(args, var, tmp_ref, tmp_pred)
+    tmp_ref, tmp_pred = create_temp_files(args["mask"], indices, ref_seq, pred_seq, protein_name)
+    metrics = get_metrics(args["sov_refine"], var["metrics"], tmp_ref, tmp_pred)
     write_file(out_file, "$(var["input_basename"]) $protein_name $mut $type $vicinity $(metrics["Accuracy"]) $(metrics["SOV_99"]) $(metrics["SOV_refine"])")
 end
 
 function write_vicinity_metrics(args, var, indices, ref_seq, pred_seq, protein_name, type, vicinity, out_file)
-    tmp_ref, tmp_pred = create_temp_files(args, indices, ref_seq, pred_seq, protein_name)
-    metrics = get_metrics(args, var, tmp_ref, tmp_pred)
+    tmp_ref, tmp_pred = create_temp_files(args["mask"], indices, ref_seq, pred_seq, protein_name)
+    metrics = get_metrics(args["sov_refine"], var["metrics"], tmp_ref, tmp_pred)
     write_file(out_file, "$(var["input_basename"]) $protein_name $type $vicinity $(metrics["Accuracy"]) $(metrics["SOV_99"]) $(metrics["SOV_refine"])")
 end
 
@@ -142,10 +86,10 @@ function commands(args, var)
         ref_sequence = sequence(read_fasta(ref_path))
         ref_sequence_original = ref_sequence[1:end-2]
         #Global metrics
-        fix_global_metrics = get_metrics(args, var, ref_path, pred_path)
+        fix_global_metrics = get_metrics(args["sov_refine"], var["metrics"], ref_path, pred_path)
         write_global_metrics(args, var, protein_name, fix_global_metrics, fix_global_file)
-        global_ref, global_pred = create_temp_files(args, :, ref_sequence_original, pred_sequence_original, protein_name)
-        nofix_global_metrics = get_metrics(args, var, global_ref, global_pred)
+        global_ref, global_pred = create_temp_files(args["mask"], :, ref_sequence_original, pred_sequence_original, protein_name)
+        nofix_global_metrics = get_metrics(args["sov_refine"], var["metrics"], global_ref, global_pred)
         write_global_metrics(args, var, protein_name, nofix_global_metrics, nofix_global_file)
         for type in ["1d", "2d", "3d", "contact"]
             #Mutation vicinity metrics

@@ -213,8 +213,14 @@ function mutations_in_protein(mutations::Vector{Mutation}, protein)
     return muts
 end
 
-function proteins_from_mutation(mutations::Vector{Mutation})
-    return mutations.proteins
+function proteins_from_mutations(mutations::Vector{Mutation})
+    proteins = Set()
+    for mut in mutations
+        for p in mut.proteins
+            push!(proteins, p)
+        end
+    end
+    return proteins
 end
 
 function read_vicinity_file(vicinity_file)
@@ -283,4 +289,50 @@ function split_non_consecutive(indices, step=1)
         push!(split_result, indices[split_idx[i]+1:split_idx[i+1]])
     end
     return split_result
+end
+
+function get_non_locality(indices, seqs_length)
+    non_local = collect(1:seqs_length)
+    deleteat!(non_local, indices)
+    return non_local
+end
+
+function read_metrics(metrics, sov_refine_output)
+    results = Dict{String, Float32}()
+    for line in split(sov_refine_output, '\n')
+        line_split = split(line, '\t')
+        if first(line_split) in metrics
+            results[first(line_split)] = parse(Float32, last(line_split))
+        end
+    end
+    return results
+end
+
+function get_metrics(sov_refine_path, metrics, file_ref, file_pred)
+    cmd = pipeline(`$(sov_refine_path) $(file_ref) $(file_pred)`, stderr=devnull)
+    output = read(cmd, String)
+    return read_metrics(metrics, output)
+end
+
+function write_temp(name, seq)
+    tmp_file = tempname()
+    FASTA.Writer(open(tmp_file, "w")) do writer
+        write(writer, FASTA.Record(name, seq))
+    end
+    return tmp_file
+end
+
+function create_temp_files(use_mask, indices, ref_sequence, pred_sequence, protein_name)
+    tmp_ref = ""
+    tmp_pred = ""
+    if use_mask
+        ref_masked = mask_non_consecutive(ref_sequence, indices)
+        tmp_ref = write_temp(protein_name, ref_masked)
+        pred_masked = mask_non_consecutive(pred_sequence, indices)
+        tmp_pred = write_temp(protein_name, pred_masked)
+    else
+        tmp_ref = write_temp(protein_name, ref_sequence[indices])
+        tmp_pred = write_temp(protein_name, pred_sequence[indices])
+    end
+    return tmp_ref, tmp_pred
 end

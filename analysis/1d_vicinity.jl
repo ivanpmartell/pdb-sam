@@ -65,7 +65,7 @@ protein_conditions(a,f) = return has_extension(f, ".fa") && startswith(parent_di
 function initialize!(args, var)
     var["fext"] = ".1dv"
     var["pext"] = ".fa"
-    log_initialize!(args,var)
+    log_initialize!(args, var)
 end
 
 function preprocess!(args, var) 
