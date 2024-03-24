@@ -1,9 +1,9 @@
 using Dates
 using ProgressBars
 
-function monitor_process(script_args, commands; input_conditions=default_input_condition, initialize=default_var_procedure, preprocess=default_var_procedure, postprocess=default_var_procedure, finalize=default_var_procedure, var=Dict(), input_type='f', nested=false, skip_error=false, runtime_unit="min")
+function monitor_process(script_args, commands; input_conditions=default_input_condition, initialize=default_var_procedure, preprocess=default_var_procedure, postprocess=default_var_procedure, finalize=default_var_procedure, var=Dict(), input_type='f', nested=false, skip_error=false, runtime_unit="min", overwrite=false)
     start_time = now()
-    initialize(script_args, var) #Define abs_input, abs_output, log_file
+    run_process("Initializing", initialize, script_args, var) #Define abs_input, abs_output, log_file
     print_log(var, "Starting work on $(var["abs_input"])"; time=start_time)
     counter = 0
     error_counter = 0
@@ -19,11 +19,11 @@ function monitor_process(script_args, commands; input_conditions=default_input_c
         var["abs_input_dir"] = dirname(var["input_path"])
         var["input_basename"] = basename(input)
         var["input_noext"] = remove_ext(var["input_basename"])
-        preprocess(script_args, var) #Define output_files, error_files, abs_output_dir
+        run_process("Pre-processing", preprocess, script_args, var) #Define output_files, error_files, abs_output_dir
         for output_file in var["output_files"]
             var["output_file"] = output_file
             var["error_file"] = var["error_files"][output_file]
-            if !isfile(output_file)
+            if !isfile(output_file) || overwrite
                 if skip_error && isfile(var["error_file"])
                     print_runtime(var, iter_start_time, runtime_unit, "Skipping $(input)")
                     print_log(var, "INFO: Delete error (.err) file to process skipped file")
@@ -49,29 +49,40 @@ function monitor_process(script_args, commands; input_conditions=default_input_c
                 print_log(var, "Output already exists on $(output_file)")
             end
         end
-        postprocess(script_args, var)
+        run_process("Post-processing", postprocess, script_args, var)
         clean_variables!(var)
     end
-    finalize(script_args, var)
+    run_process("Finalizing", finalize, script_args, var)
     print_runtime(var, start_time, runtime_unit, "Finished on $(var["abs_input"])")
     print_log(var, "$(error_counter) errors found in $(counter) files")
 end
 
-function work_on_single(script_args, run_cmds; in_conditions=default_input_condition, initialize=log_initialize!, preprocess=default_var_procedure, postprocess=default_var_procedure, finalize=default_var_procedure, runtime_unit="min")
+function run_process(process_name, process_function, args, var)
+    try
+        process_function(args, var)
+    catch e
+        error_msg = sprint(showerror, e)
+        st = sprint((io,v) -> show(io, "text/plain", v), stacktrace(catch_backtrace()))
+        print_msg = "$(error_msg)\n$(st)"
+        print_log(var, "ERROR ($process_name):\n$print_msg")
+    end
+end
+
+function work_on_single(script_args, run_cmds; in_conditions=default_input_condition, initialize=log_initialize!, preprocess=default_var_procedure, postprocess=default_var_procedure, finalize=default_var_procedure, runtime_unit="min", overwrite=false)
     default_output_arg!(script_args)
     var = Dict()
     var["abs_input"], var["abs_output"] = get_abspaths(script_args["input"], script_args["output"])
-    monitor_process(script_args, run_cmds; input_conditions=in_conditions, initialize=initialize, preprocess=preprocess, postprocess=postprocess, finalize=finalize, var=var, skip_error=script_args["skip_error"], runtime_unit=runtime_unit)
+    monitor_process(script_args, run_cmds; input_conditions=in_conditions, initialize=initialize, preprocess=preprocess, postprocess=postprocess, finalize=finalize, var=var, skip_error=script_args["skip_error"], runtime_unit=runtime_unit, overwrite=overwrite)
 end
 
-function work_on_multiple(script_args, run_cmds, input_type; in_conditions=default_input_condition, initialize=log_initialize!, preprocess=default_var_procedure, postprocess=default_var_procedure, finalize=default_var_procedure, runtime_unit="min", nested=true)
+function work_on_multiple(script_args, run_cmds, input_type; in_conditions=default_input_condition, initialize=log_initialize!, preprocess=default_var_procedure, postprocess=default_var_procedure, finalize=default_var_procedure, runtime_unit="min", nested=true, overwrite=false)
     default_output_arg!(script_args)
     var = Dict()
     var["abs_input"], var["abs_output"] = no_output_equals_input(script_args["input"], script_args["output"])
     if !isdir(var["abs_input"])
         throw(ErrorException("Input is not a directory"))
     end
-    monitor_process(script_args, run_cmds; input_conditions=in_conditions, initialize=initialize, preprocess=preprocess, postprocess=postprocess, finalize=finalize, var=var, input_type=input_type, nested=nested, skip_error=script_args["skip_error"], runtime_unit=runtime_unit)
+    monitor_process(script_args, run_cmds; input_conditions=in_conditions, initialize=initialize, preprocess=preprocess, postprocess=postprocess, finalize=finalize, var=var, input_type=input_type, nested=nested, skip_error=script_args["skip_error"], runtime_unit=runtime_unit, overwrite=overwrite)
 end
 
 function default_output_arg!(parsed_arguments)

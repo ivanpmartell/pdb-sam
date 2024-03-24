@@ -8,6 +8,9 @@ function parse_commandline()
         "--skip_error", "-k"
             help = "Skip files that have previously failed"
             action = :store_true
+        "--overwrite", "-w"
+            help = "Overwrite previous output"
+            action = :store_true
         "--input", "-i"
             help = "Input directory. Cluster folders with secondary structure assignment files required"
             required = true
@@ -17,7 +20,7 @@ function parse_commandline()
             help = "Secondary structure assignment file extension"
             default = ".ssfa"
         "--filter_helper", "-f"
-            help = "Filter script helper file path. Usually filter_pdb_gaf.sh"
+            help = "Filter script helper file path. Under helpers: filter_x_gaf.sh"
             required = true
         "--gaf_file", "-g"
             help = "Path to gaf file with gene ontology for PDB entries"
@@ -46,18 +49,19 @@ function get_filtered_gaf(args, var)
             continue
         end
         protein = lowercase(vals[2])
+        qualifier = lowercase(vals[4])
         gene_ontology = uppercase(vals[5])
         taxon = lowercase(vals[13])
         if haskey(result, protein)
-            push!(first(result[protein]), gene_ontology)
-            push!(last(result[protein]), taxon)
+                push!(first(result[protein]), gene_ontology)
+                push!(last(result[protein]), taxon)
         else
             result[protein] = (Set([gene_ontology]), Set([taxon]))
         end
     end
     return result
 end
-#TODO: uniprot_all gaf addition
+
 function commands(args, var)
     for prot in process_input(var["input_path"], 'f'; input_conditions=(a,x)->has_extension(x, args["extension"]), silence=true)
         protein = remove_ext(basename(prot))
@@ -76,7 +80,7 @@ end
 
 function main()::Cint
     parsed_args = parse_commandline()
-    work_on_multiple(parsed_args, commands, 'd'; in_conditions=input_conditions, initialize=initialize!, preprocess=preprocess!)
+    work_on_multiple(parsed_args, commands, 'd'; in_conditions=input_conditions, initialize=initialize!, preprocess=preprocess!, overwrite=parsed_args["overwrite"])
     return 0
 end
 
