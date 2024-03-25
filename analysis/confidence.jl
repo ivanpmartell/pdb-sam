@@ -51,8 +51,7 @@ function commands(args, var)
                 struc = read(protein_file, MMCIF)
                 calphas = collectatoms(struc, calphaselector)
                 for i in eachindex(calphas)
-                    ca = calphas[i]
-                    bfactor = split(pdbline(ca), ' ', keepempty=false)[end-1]
+                    bfactor = tempfactor(calphas[i])
                     vicinity = ""
                     if length(searchsorted(mut_indices, i)) !== 0
                         vicinity = "local"
