@@ -16,7 +16,7 @@ function parse_commandline()
             help = "Output directory. Ignore to use input directory"
         "--extension", "-e"
             help = "Secondary structure assignment file extension"
-            default = ".mmcif"
+            default = ".pdb.mmcif"
         "--mutation_file", "-m"
             help = "Mutation file basename"
             default = "mutations.txt"
@@ -24,30 +24,31 @@ function parse_commandline()
     return parse_args(s)
 end
 
-input_conditions(a,f) = return startswith(basename(f), "Cluster")
+input_conditions(a,f) = return startswith(parent_dir(f), "Cluster") && basename(f) in ["af2", "colabfold", "esmfold", "rgn2"]
 
 function preprocess!(args, var)
-    input_dir_out_preprocess!(var, "bfactors"; fext=".txt", cdir=var["input_basename"])
+    input_dir_out_preprocess!(var, "confidence_factors"; fext=".txt", cdir=var["input_basename"])
 end
 
 function commands(args, var)
-    mutation_file = joinpath(var["input_path"], args["mutation_file"])
+    cluster_dir = dirname(var["input_path"])
+    tool = basename(var["input_path"])
+    mutation_file = joinpath(cluster_dir, args["mutation_file"])
     if !isfile(mutation_file)
         throw(ErrorException("Mutation file not found: $mutation_file"))
     end
     mutations = read_mutations(mutation_file)
     for type in ["1d", "2d", "3d", "contact"]
-        mutations_vicinity_file = joinpath(var["input_path"], get_vicinity_type_filename("cluster", type))
+        mutations_vicinity_file = joinpath(cluster_dir, get_vicinity_type_filename("cluster", type))
         mut_vic_indices = read_mutations_vicinity_file(mutations_vicinity_file)
-        non_local_file = joinpath(var["input_path"], get_vicinity_type_filename("non_local", type))
+        non_local_file = joinpath(cluster_dir, get_vicinity_type_filename("non_local", type))
         nl_indices = read_vicinity_file(non_local_file)
         for mutation in mutations
             mut = "$(mutation.from)$(mutation.position)$(mutation.to)"
             mut_indices = mut_vic_indices[mut]
             for protein in mutation.proteins
                 protein_file = joinpath(var["input_path"], "$protein$(args["extension"])")
-                id, chain = split(protein, '_')
-                struc = read(protein_file, MMCIF)[chain]
+                struc = read(protein_file, MMCIF)
                 calphas = collectatoms(struc, calphaselector)
                 for i in eachindex(calphas)
                     ca = calphas[i]
@@ -60,7 +61,7 @@ function commands(args, var)
                     else
                         vicinity = "global"
                     end
-                    write_file(var["output_file"], "$protein $mut $vicinity $type $i $bfactor")
+                    write_file(var["output_file"], "$protein $tool $mut $vicinity $type $i $bfactor")
                 end
             end
         end

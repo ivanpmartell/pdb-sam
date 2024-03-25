@@ -187,7 +187,7 @@ function walk_directory!(inputs, dir_path, input_type, input_conditions, script_
         if isdir(path)
             if input_type == 'd'
                 if input_conditions(script_args, path)
-                    push!(directories, get_relpath(input_dir, path))
+                    push!(inputs, get_relpath(input_dir, path))
                 end
             end
             walk_directory!(inputs, path, input_type, input_conditions, script_args, nested, input_dir)
