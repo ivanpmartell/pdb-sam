@@ -13,6 +13,9 @@ function parse_commandline()
             required = true
         "--output", "-o"
             help = "Output directory. Ignore to write files in input directory"
+        "--mutation_file", "-m"
+            help = "Mutation file basename"
+            default = "mutations.txt"
     end
     return parse_args(s)
 end
@@ -25,6 +28,11 @@ end
 
 function commands(args, var)
     cluster = basename(var["input_path"])
+    mutation_file = joinpath(var["input_path"], args["mutation_file"])
+    if !isfile(mutation_file)
+        throw(ErrorException("Mutation file not found: $mutation_file"))
+    end
+    mutations = read_mutations(mutation_file)
     vicinity_out = joinpath(var["abs_output_dir"], "vicinity_length.txt")
     for type in ["1d", "2d", "3d", "contact"]
         for vicinity in ["local", "non_local"]
@@ -33,9 +41,12 @@ function commands(args, var)
             write_file(vicinity_out, "$cluster $vicinity $type $(length(indices))")
         end
         mut_vicinity_file = joinpath(var["input_path"], get_vicinity_type_filename("cluster", type))
-        mut_vic_indices = read_mutations_vicinity_file(mut_vicinity_file)
-        for mkey in keys(mut_vic_indices)
-            write_file(var["output_file"], "$mkey $type $(length(mut_vic_indices[mkey]))")
+        for mutation in mutations
+            mut = "$(mutation.from)$(mutation.position)$(mutation.to)"
+            mut_vic_indices = read_mutations_vicinity_file(mut_vicinity_file)
+            for protein in mutation.proteins
+                write_file(var["output_file"], "$protein $mut $type $(length(mut_vic_indices[mut]))")
+            end
         end
     end
 end
