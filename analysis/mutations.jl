@@ -11,7 +11,10 @@ function parse_commandline()
         "--input", "-i"
             help = "Input directory. Cluster folders with alignment files required"
             required = true
-        "--consensus_sequence", "-c"
+        "--consensus_file", "-c"
+            help = "Basename of consensus file"
+            default = "consensus.txt"
+        "--consensus_sequence", "-s"
             help = "Basename of consensus sequence file"
             default = "consensus_sequence.txt"
         "--output", "-o"
@@ -32,21 +35,31 @@ end
 function commands(args, var)
     records = fasta_dict(var["input_path"])
     seqs_length = get_sequences_length(records)
-    consensus_file = joinpath(dirname(var["input_path"]), args["consensus_sequence"])
-    consensus_seq = rstrip(read(consensus_file, String),'\n')
+    consensus_seq_file = joinpath(dirname(var["input_path"]), args["consensus_sequence"])
+    consensus_seq = rstrip(read(consensus_seq_file, String),'\n')
     if length(consensus_seq) !== seqs_length
         throw(ErrorException("Consensus sequence is wrong"))
     end
+    consensus_file = joinpath(dirname(var["input_path"]), args["consensus_file"])
+    consensus_id = get_consensus(read_consensus(consensus_file))
     mutation_dict = Dict{String, Vector{String}}()
+    proteins_with_mutation = Set{String}()
     for i in 1:seqs_length
         for j in eachindex(records)
             aa = sequence(records[j])[i]
             if aa !== consensus_seq[i]
-                if haskey(mutation_dict, "$(consensus_seq[i])$i$aa")
-                    push!(mutation_dict["$(consensus_seq[i])$i$aa"], identifier(records[j]))
+                protein = ""
+                if identifier(records[j]) in proteins_with_mutation && !(consensus_id in proteins_with_mutation)
+                    protein = consensus_id
                 else
-                    mutation_dict["$(consensus_seq[i])$i$aa"] = [identifier(records[j])]
+                    protein = identifier(records[j])
                 end
+                if haskey(mutation_dict, "$(consensus_seq[i])$i$aa")
+                    push!(mutation_dict["$(consensus_seq[i])$i$aa"], protein)
+                else
+                    mutation_dict["$(consensus_seq[i])$i$aa"] = [protein]
+                end
+                push!(proteins_with_mutation, protein)
             end
         end
     end
