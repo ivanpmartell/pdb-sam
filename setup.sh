@@ -53,4 +53,4 @@ echo "export PATH=\"$(pwd)/maxit-v11.100-prod-src/bin:$(pwd)/julia-1.10.0/bin:$(
 echo "export PATH=\"$(pwd)/maxit-v11.100-prod-src/bin:$(pwd)/julia-1.10.0/bin:$(pwd)/cd-hit:$(pwd)/cd-hit/cd-hit-auxtools:$(pwd)/cd-hit/psi-cd-hit:$(pwd)/ncbi-blast-2.15.0+/bin:/usr/local/emboss/bin:\$PATH\"" >> ~/.bashrc
 echo "export RCSBROOT=$(pwd)/maxit-v11.100-prod-src" >> ~/.bashrc
 
-"$(pwd)/julia-1.10.0/bin/julia" -e 'using Pkg; Pkg.add(["ArgParse", "FASTX", "BioStructures", "BioSequences", "LogExpFunctions", "Pandas", "DataFrames"])'
+"$(pwd)/julia-1.10.0/bin/julia" -e 'using Pkg; Pkg.add(["ArgParse", "ProgressBars", "FASTX", "BioStructures", "BioSequences", "LogExpFunctions", "Pandas", "DataFrames"])'

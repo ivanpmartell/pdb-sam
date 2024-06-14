@@ -49,15 +49,16 @@ function commands(args, var)
             aa = sequence(records[j])[i]
             if aa !== consensus_seq[i]
                 protein = ""
+                mutation_str = "$(consensus_seq[i])$i$aa"
                 if identifier(records[j]) in proteins_with_mutation && !(consensus_id in proteins_with_mutation)
                     protein = consensus_id
                 else
                     protein = identifier(records[j])
                 end
-                if haskey(mutation_dict, "$(consensus_seq[i])$i$aa")
-                    push!(mutation_dict["$(consensus_seq[i])$i$aa"], protein)
+                if haskey(mutation_dict, mutation_str)
+                    push!(mutation_dict[mutation_str], protein)
                 else
-                    mutation_dict["$(consensus_seq[i])$i$aa"] = [protein]
+                    mutation_dict[mutation_str] = [protein]
                 end
                 push!(proteins_with_mutation, protein)
             end
