@@ -338,7 +338,13 @@ end
 function get_prediction_methods()
     tertiary_methods = ["af2", "colabfold", "esmfold", "rgn2"]
     secondary_methods = ["raptorx", "sspro8", "spot1d", "spot1d_lm", "spot1d_single"]
-    return [secondary_methods ; tertiary_methods]
+    all_methods = [secondary_methods ; tertiary_methods]
+    return all_methods
+end
+
+function prediction_methods_from_string(s)
+    methods = split(s, ',')
+    return methods
 end
 
 function get_vicinity_type_filename(vicinity, type)

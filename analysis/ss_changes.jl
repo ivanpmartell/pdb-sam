@@ -87,11 +87,12 @@ function commands(args, var)
     end
     mutations = read_mutations(mutation_file)
     protein_pos_changes = Dict{String, Dict{String, Dict{Int, Vector{Tuple{Char, Char}}}}}() # protein => tool => pos_changes
+    tools = get_prediction_methods()
     for protein in proteins_from_mutations(mutations)
         protein_ss_file = joinpath(var["abs_input_dir"], "$protein.ssfa")
         protein_ss_seq = sequence(read_fasta(protein_ss_file))
         protein_pos_changes[protein] = Dict("pdb" => position_changes(ss_consensus_seq, protein_ss_seq))
-        for tool in get_prediction_methods()
+        for tool in tools
             pred_ss_file = joinpath(var["abs_input_dir"], tool, "$protein.sspfa")
             pred_ss_seq = sequence(read_fasta(pred_ss_file))
             protein_pos_changes[protein][tool] = position_changes(ss_consensus_seq, pred_ss_seq)

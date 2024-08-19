@@ -90,9 +90,9 @@ end
 
 function normalize_dssp_ouput(df, seq_len)
     assignment = repeat('C', seq_len)
-    dssp_dict = Dict("HELX_LH_PP_P" => 'C', #Ignore for now (No equivalent in Q8)
+    dssp_dict = Dict("HELX_LH_PP_P" => 'P',
                     "HELX_RH_AL_P" => 'H',
-                    "STRN" => 'E', #Almost never B (isolated beta-bridge)
+                    "STRN" => 'E', #Almost never B (isolated beta-bridge), B is assigned later
                     "HELX_RH_3T_P" => 'G',
                     "HELX_RH_PI_P" => 'I',
                     "TURN_TY1_P" => 'T',

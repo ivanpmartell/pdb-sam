@@ -28,6 +28,8 @@ function parse_commandline()
         "--mask", "-m"
             help = "Agglomerate mutation results within cluster. Mask and reduce irrelevant (non local) parts of sequence to produce results"
             action = :store_true
+        "--append", "-a"
+            help = "Append new method to already existing metrics. Avoids recalculating all previous methods."
     end
     return parse_args(s)
 end
@@ -48,11 +50,15 @@ function commands(args, var)
     mutations = read_mutations(mutation_file)
     global_file = joinpath(var["abs_output_dir"], "global.metrics")
     mut_out_file = joinpath(var["abs_output_dir"], "mutation.metrics")
+    tools = get_prediction_methods()
+    if args["append"] !== nothing
+        tools = prediction_methods_from_string(args["append"])
+    end
     for protein_ref in process_input(var["input_path"], 'f'; input_conditions=(a,x)->has_extension(x, args["extension"]), silence=true)
         ref_path = joinpath(var["input_path"], protein_ref)
         protein_name = first(basename_ext(protein_ref))
         ref_sequence = sequence(read_fasta(ref_path))
-        for tool in get_prediction_methods()
+        for tool in tools
             pred_path = joinpath(var["input_path"], tool, "$protein_name$(args["prediction_extension"])")
             pred_sequence = sequence(read_fasta(pred_path))
             #Overall Global metrics
@@ -94,7 +100,8 @@ end
 
 function main()::Cint
     parsed_args = parse_commandline()
-    work_on_multiple(parsed_args, commands, 'd'; in_conditions=input_conditions, initialize=initialize!, preprocess=preprocess!)
+    overwrite_file = parsed_args["append"] !== nothing
+    work_on_multiple(parsed_args, commands, 'd'; in_conditions=input_conditions, initialize=initialize!, preprocess=preprocess!, overwrite=overwrite_file)
     return 0
 end
 
