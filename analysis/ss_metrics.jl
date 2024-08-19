@@ -57,41 +57,45 @@ function commands(args, var)
     for protein_ref in process_input(var["input_path"], 'f'; input_conditions=(a,x)->has_extension(x, args["extension"]), silence=true)
         ref_path = joinpath(var["input_path"], protein_ref)
         protein_name = first(basename_ext(protein_ref))
-        ref_sequence = sequence(read_fasta(ref_path))
-        for tool in tools
-            pred_path = joinpath(var["input_path"], tool, "$protein_name$(args["prediction_extension"])")
-            pred_sequence = sequence(read_fasta(pred_path))
-            #Overall Global metrics
-            global_metrics = get_metrics(args["sov_refine"], var["metrics"], ref_path, pred_path)
-            write_file(global_file, "$(var["input_basename"]) $protein_name $tool $(global_metrics["Accuracy"]) $(global_metrics["SOV_99"]) $(global_metrics["SOV_refine"])")
-            for type in ["1d", "2d", "3d", "contact"]
-                #Mutation vicinity metrics
-                mutations_vicinity_file = joinpath(var["input_path"], get_vicinity_type_filename("cluster", type))
-                mut_vic_indices = read_mutations_vicinity_file(mutations_vicinity_file)
-                muts = mutations_in_protein(mutations, protein_name)
-                for m in muts
-                    mut = "$(m.from)$(m.position)$(m.to)"
-                    #Local
-                    mut_indices = mut_vic_indices[mut]
-                    tmp_ref, tmp_pred = create_temp_files(args["mask"], mut_indices, ref_sequence, pred_sequence, protein_name)
-                    metrics = get_metrics(args["sov_refine"], var["metrics"], tmp_ref, tmp_pred)
-                    write_file(mut_out_file, "$(var["input_basename"]) $protein_name $mut $tool $type local $(metrics["Accuracy"]) $(metrics["SOV_99"]) $(metrics["SOV_refine"])")
-                    #Non-local
-                    nl_indices = collect(1:length(ref_sequence))
-                    deleteat!(nl_indices, mut_indices)
-                    nl_ref, nl_pred = create_temp_files(args["mask"], nl_indices, ref_sequence, pred_sequence, protein_name)
-                    nl_metrics = get_metrics(args["sov_refine"], var["metrics"], nl_ref, nl_pred)
-                    write_file(mut_out_file, "$(var["input_basename"]) $protein_name $mut $tool $type non_local $(nl_metrics["Accuracy"]) $(nl_metrics["SOV_99"]) $(nl_metrics["SOV_refine"])")
-                    #Global
-                    write_file(mut_out_file, "$(var["input_basename"]) $protein_name $mut $tool $type global $(global_metrics["Accuracy"]) $(global_metrics["SOV_99"]) $(global_metrics["SOV_refine"])")
-                end
-                #Overall Local vs non-local metrics
-                for vicinity in ["local", "non_local"]
-                    vicinity_type_file = joinpath(var["input_path"], get_vicinity_type_filename(vicinity, type))
-                    indices = read_vicinity_file(vicinity_type_file)
-                    tmp_ref, tmp_pred = create_temp_files(args["mask"], indices, ref_sequence, pred_sequence, protein_name)
-                    metrics = get_metrics(args["sov_refine"], var["metrics"], tmp_ref, tmp_pred)
-                    write_file(var["output_file"], "$(var["input_basename"]) $protein_name $tool $type $vicinity $(metrics["Accuracy"]) $(metrics["SOV_99"]) $(metrics["SOV_refine"])")
+        if isfile(ref_path)
+            ref_sequence = sequence(read_fasta(ref_path))
+            for tool in tools
+                pred_path = joinpath(var["input_path"], tool, "$protein_name$(args["prediction_extension"])")
+                if isfile(pred_path)
+                    pred_sequence = sequence(read_fasta(pred_path))
+                    #Overall Global metrics
+                    global_metrics = get_metrics(args["sov_refine"], var["metrics"], ref_path, pred_path)
+                    write_file(global_file, "$(var["input_basename"]) $protein_name $tool $(global_metrics["Accuracy"]) $(global_metrics["SOV_99"]) $(global_metrics["SOV_refine"])")
+                    for type in ["1d", "2d", "3d", "contact"]
+                        #Mutation vicinity metrics
+                        mutations_vicinity_file = joinpath(var["input_path"], get_vicinity_type_filename("cluster", type))
+                        mut_vic_indices = read_mutations_vicinity_file(mutations_vicinity_file)
+                        muts = mutations_in_protein(mutations, protein_name)
+                        for m in muts
+                            mut = "$(m.from)$(m.position)$(m.to)"
+                            #Local
+                            mut_indices = mut_vic_indices[mut]
+                            tmp_ref, tmp_pred = create_temp_files(args["mask"], mut_indices, ref_sequence, pred_sequence, protein_name)
+                            metrics = get_metrics(args["sov_refine"], var["metrics"], tmp_ref, tmp_pred)
+                            write_file(mut_out_file, "$(var["input_basename"]) $protein_name $mut $tool $type local $(metrics["Accuracy"]) $(metrics["SOV_99"]) $(metrics["SOV_refine"])")
+                            #Non-local
+                            nl_indices = collect(1:length(ref_sequence))
+                            deleteat!(nl_indices, mut_indices)
+                            nl_ref, nl_pred = create_temp_files(args["mask"], nl_indices, ref_sequence, pred_sequence, protein_name)
+                            nl_metrics = get_metrics(args["sov_refine"], var["metrics"], nl_ref, nl_pred)
+                            write_file(mut_out_file, "$(var["input_basename"]) $protein_name $mut $tool $type non_local $(nl_metrics["Accuracy"]) $(nl_metrics["SOV_99"]) $(nl_metrics["SOV_refine"])")
+                            #Global
+                            write_file(mut_out_file, "$(var["input_basename"]) $protein_name $mut $tool $type global $(global_metrics["Accuracy"]) $(global_metrics["SOV_99"]) $(global_metrics["SOV_refine"])")
+                        end
+                        #Overall Local vs non-local metrics
+                        for vicinity in ["local", "non_local"]
+                            vicinity_type_file = joinpath(var["input_path"], get_vicinity_type_filename(vicinity, type))
+                            indices = read_vicinity_file(vicinity_type_file)
+                            tmp_ref, tmp_pred = create_temp_files(args["mask"], indices, ref_sequence, pred_sequence, protein_name)
+                            metrics = get_metrics(args["sov_refine"], var["metrics"], tmp_ref, tmp_pred)
+                            write_file(var["output_file"], "$(var["input_basename"]) $protein_name $tool $type $vicinity $(metrics["Accuracy"]) $(metrics["SOV_99"]) $(metrics["SOV_refine"])")
+                        end
+                    end
                 end
             end
         end
