@@ -343,7 +343,7 @@ function get_prediction_methods()
 end
 
 function prediction_methods_from_string(s)
-    methods = split(s, ',')
+    methods = split(s, '+')
     return methods
 end
 
