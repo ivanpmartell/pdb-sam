@@ -28,13 +28,16 @@ end
 input_conditions(a,f) = return has_extension(f, a["extension"])
 
 function preprocess!(args, var)
-    input_dir_out_preprocess!(var, var["input_basename"]; fext=args["dssp_extension"])
+    input_dir_out_preprocess!(var, var["input_noext"]; fext=args["dssp_extension"])
 end
 
 function commands(args, var)
-    id, chain = split(var["input_noext"], '_')
-    assigned_file = joinpath(args["dssp_assigned_dir"], "$(id)$(args["dssp_extension"])")
-    if isfile(assigned_file)
+    id, _ = split(var["input_noext"], '_')
+    assigned_file_lower = joinpath(args["dssp_assigned_dir"], "$(lowercase(id))$(args["dssp_extension"])")
+    assigned_file_upper = joinpath(args["dssp_assigned_dir"], "$(uppercase(id))$(args["dssp_extension"])")
+    if isfile(assigned_file_lower)
+        cp(assigned_file, var["output_file"], force=true)
+    elseif isfile(assigned_file_upper)
         cp(assigned_file, var["output_file"], force=true)
     end
 end
