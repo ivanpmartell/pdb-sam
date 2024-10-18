@@ -71,7 +71,7 @@ end
 function work_on_single(script_args, run_cmds; in_conditions=default_input_condition, initialize=log_initialize!, preprocess=default_var_procedure, postprocess=default_var_procedure, finalize=default_var_procedure, runtime_unit="min", overwrite=false)
     default_output_arg!(script_args)
     var = Dict()
-    var["abs_input"], var["abs_output"] = get_abspaths(script_args["input"], script_args["output"])
+    var["abs_input"], var["abs_output"] = no_output_equals_input_dir(script_args["input"], script_args["output"])
     monitor_process(script_args, run_cmds; input_conditions=in_conditions, initialize=initialize, preprocess=preprocess, postprocess=postprocess, finalize=finalize, var=var, skip_error=script_args["skip_error"], runtime_unit=runtime_unit, overwrite=overwrite)
 end
 
@@ -87,7 +87,9 @@ end
 
 function default_output_arg!(parsed_arguments)
     if !haskey(parsed_arguments, "output")
-        parsed_arguments["output"] = ""
+        if isnothing(parsed_arguments["output"])
+            parsed_arguments["output"] = ""
+        end
     end
 end
 
@@ -278,6 +280,13 @@ end
 function no_output_equals_input(input, output)
     if isnothing(output)
         output = input
+    end
+    return get_abspaths(input, output)
+end
+
+function no_output_equals_input_dir(input, output)
+    if isnothing(output)
+        output = dirname(input)
     end
     return get_abspaths(input, output)
 end
