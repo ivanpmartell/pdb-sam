@@ -181,7 +181,7 @@ function convert_dssp(f_noext, f_path, f_out_path, seq_file, predicted, retry)
                         convert_dssp(f_noext, f_path, f_out_path, seq_file, predicted, false)
                     else
                         println("Could not fix dssp output format error: $(e)")
-                        throw(e)
+                        rethrow(e)
                     end
                 else
                     println("Could not find original cif file: $(cif_path)")
@@ -190,7 +190,7 @@ function convert_dssp(f_noext, f_path, f_out_path, seq_file, predicted, retry)
                 println("Did not attempt to fix dssp format errors. Use -f if needed")
             end
         else
-            throw(e)
+            rethrow(e)
         end
     end
 end
