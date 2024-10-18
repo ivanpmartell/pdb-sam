@@ -36,9 +36,9 @@ function commands(args, var)
     assigned_file_lower = joinpath(args["dssp_assigned_dir"], "$(lowercase(id))$(args["dssp_extension"])")
     assigned_file_upper = joinpath(args["dssp_assigned_dir"], "$(uppercase(id))$(args["dssp_extension"])")
     if isfile(assigned_file_lower)
-        cp(assigned_file, var["output_file"], force=true)
+        cp(assigned_file_lower, var["output_file"], force=true)
     elseif isfile(assigned_file_upper)
-        cp(assigned_file, var["output_file"], force=true)
+        cp(assigned_file_upper, var["output_file"], force=true)
     end
 end
 
