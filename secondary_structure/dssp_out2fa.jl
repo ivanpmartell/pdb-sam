@@ -28,19 +28,24 @@ function parse_commandline()
         "--predicted", "-p"
             help = "Use for predicted tertiary structures"
             action = :store_true
+        "--structure_order", "-s"
+            help = "Use aminoacid structure ordering from DSSP output"
+            action = :store_true
     end
     return parse_args(s)
 end
 
-function parse_dssp_mmcif(results_path, chain)
+function parse_dssp_mmcif(results_path, ch)
     mmcif_dict = MMCIFDict(results_path)
     dssp_data = "_struct_conf"
     dssp_mmcif_header = ["conf_type_id", "id",
         "beg_auth_comp_id", "beg_auth_asym_id", "beg_label_seq_id",
-        "end_auth_comp_id", "end_auth_asym_id", "end_label_seq_id"]
+        "end_auth_comp_id", "end_auth_asym_id", "end_label_seq_id",
+        "beg_auth_seq_id", "end_auth_seq_id"]
     dssp_readable_header = ["2dstruc", "2dstruc_id",
         "aa_start", "chain_start", "seq_start",
-        "aa_end", "chain_end", "seq_end"]
+        "aa_end", "chain_end", "seq_end",
+        "struc_start", "struc_end"]
     column_headers = string.(dssp_data, ".", dssp_mmcif_header)
     assignments = Matrix{Any}(undef, length(mmcif_dict[first(column_headers)]), length(column_headers))
     for (i, header) in enumerate(column_headers)
@@ -48,12 +53,16 @@ function parse_dssp_mmcif(results_path, chain)
     end
     #Obtain sequence
     struc = MolecularStructure(mmcif_dict)
-    sequence = LongAA(struc[chain], standardselector, gaps=true)
+    first_residue = first(resids(struc[ch]))
+    start_residue = resnumber(residues(struc[ch])[first_residue])
+    sequence = LongAA(struc[ch], standardselector, gaps=true)
     df = DataFrame(assignments, dssp_readable_header)
-    filter!(:chain_end => ==(chain), df)
+    filter!(:chain_end => ==(ch), df)
     df.seq_start = parse.(Int64, df.seq_start)
     df.seq_end = parse.(Int64, df.seq_end)
-    return (df, sequence)
+    df.struc_start = parse.(Int64, df.struc_start)
+    df.struc_end = parse.(Int64, df.struc_end)
+    return (df, sequence, start_residue)
 end
 
 function fix_isolated_bridge(str)
@@ -88,7 +97,7 @@ function str_sub(str::String, replacement::Char, istart::Int, iend::Int)
     return SubString(str, firstindex(str), istart-1) * change * SubString(str, iend+1, lastindex(str))
 end
 
-function normalize_dssp_ouput(df, seq_len)
+function normalize_dssp_ouput(df, seq_len, start_resnum, struc_order)
     assignment = repeat('C', seq_len)
     dssp_dict = Dict("HELX_LH_PP_P" => 'P',
                     "HELX_RH_AL_P" => 'H',
@@ -98,7 +107,15 @@ function normalize_dssp_ouput(df, seq_len)
                     "TURN_TY1_P" => 'T',
                     "BEND" => 'S')
     for row in eachrow(df)
-        assignment = str_sub(assignment, dssp_dict[row["2dstruc"]], row["seq_start"], row["seq_end"])
+        sub_start = sub_end = 0
+        if struc_order
+            sub_start = row["struc_start"] - start_resnum + 1
+            sub_end = row["struc_end"] - start_resnum + 1
+        else
+            sub_start = row["seq_start"]
+            sub_end = row["seq_end"]
+        end
+        assignment = str_sub(assignment, dssp_dict[row["2dstruc"]], sub_start, sub_end)
     end
     #Change E to B if isolated (Must make sure it makes sense)
     assignment = fix_isolated_bridge(assignment)
@@ -146,15 +163,15 @@ function fix_dssp_formatting_errors(cif_path, dssp_out_path)
     mv(tmppath, dssp_out_path, force=true)
 end
 
-function convert_dssp(f_noext, f_path, f_out_path, seq_file, predicted, retry)
-    id, chain = split(f_noext, '_')
+function convert_dssp(f_noext, f_path, f_out_path, seq_file, predicted, struc_order, retry)
+    id, ch = split(f_noext, '_')
     tool = "dssp"
     if predicted
-        chain = "A"
+        ch = "A"
         tool = last(split(dirname(f_path), '/'))
     end
     try
-        assign_df, assign_seq = parse_dssp_mmcif(f_path, chain)
+        assign_df, assign_seq, start_resnum = parse_dssp_mmcif(f_path, ch)
         if isempty(assign_df)
             throw(ErrorException("Dataframe parsing error"))
         end
@@ -165,7 +182,7 @@ function convert_dssp(f_noext, f_path, f_out_path, seq_file, predicted, retry)
                 throw(ErrorException("Sequence lengths mismatch"))
             end
         end
-        assignment = normalize_dssp_ouput(assign_df, length(assign_seq))
+        assignment = normalize_dssp_ouput(assign_df, length(assign_seq), start_resnum, struc_order)
         #Write ss assignment file
         FASTA.Writer(open(f_out_path, "w")) do writer
             write(writer, FASTA.Record("$(f_noext)_$(tool)", assignment))
@@ -178,7 +195,7 @@ function convert_dssp(f_noext, f_path, f_out_path, seq_file, predicted, retry)
                 if isfile(cif_path)
                     if startswith(e.msg, "Opening quote")
                         fix_dssp_formatting_errors(cif_path, f_path)
-                        convert_dssp(f_noext, f_path, f_out_path, seq_file, predicted, false)
+                        convert_dssp(f_noext, f_path, f_out_path, seq_file, predicted, struc_order, false)
                     else
                         println("Could not fix dssp output format error: $(e)")
                         rethrow(e)
@@ -188,6 +205,7 @@ function convert_dssp(f_noext, f_path, f_out_path, seq_file, predicted, retry)
                 end
             else
                 println("Did not attempt to fix dssp format errors. Use -f if needed")
+                rethrow(e)
             end
         else
             rethrow(e)
@@ -203,7 +221,7 @@ end
 
 function commands(args, var)
     sequence_file = joinpath(var["abs_input_dir"], "$(var["input_noext"]).fa")
-    convert_dssp(var["input_noext"], var["input_path"], var["output_file"], sequence_file, args["predicted"], args["fix"])
+    convert_dssp(var["input_noext"], var["input_path"], var["output_file"], sequence_file, args["predicted"], args["structure_order"], args["fix"])
 end
 
 function main()::Cint

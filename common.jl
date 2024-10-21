@@ -87,6 +87,8 @@ end
 
 function default_output_arg!(parsed_arguments)
     if !haskey(parsed_arguments, "output")
+        parsed_arguments["output"] = ""
+    else
         if isnothing(parsed_arguments["output"])
             parsed_arguments["output"] = ""
         end
