@@ -47,7 +47,7 @@ function commands(args, var)
             for protein in mutation.proteins
                 protein_file = joinpath(var["input_path"], "$protein$(args["extension"])")
                 id, chain = split(protein, '_')
-                struc = read(protein_file, MMCIF)[chain]
+                struc = read(protein_file, MMCIFFormat)[chain]
                 calphas = collectatoms(struc, calphaselector)
                 for i in eachindex(calphas)
                     bfactor = tempfactor(calphas[i])

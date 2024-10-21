@@ -48,7 +48,7 @@ function commands(args, var)
             mut_indices = mut_vic_indices[mut]
             for protein in mutation.proteins
                 protein_file = joinpath(var["input_path"], "$protein$(args["extension"])")
-                struc = read(protein_file, MMCIF)
+                struc = read(protein_file, MMCIFFormat)
                 calphas = collectatoms(struc, calphaselector)
                 for i in eachindex(calphas)
                     bfactor = tempfactor(calphas[i])

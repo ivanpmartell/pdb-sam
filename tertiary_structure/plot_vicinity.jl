@@ -50,7 +50,7 @@ input_conditions(a,f) = return has_extension(f, a["extension"])
 function commands(args, var)
     parent_dir = dirname(dirname(var["input_path"]))
     if startswith(last(splitdir(parent_dir)), "Cluster")
-        struc = read(var["input_path"], PDB)
+        struc = read(var["input_path"], PDBFormat)
         calphas = collectatoms(struc, calphaselector)
         mut_file = joinpath(parent_dir, args["mut_file"])
         mutations =  read_mutation_file(mut_file)#dict of mutation from other file

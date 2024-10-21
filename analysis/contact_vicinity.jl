@@ -119,7 +119,7 @@ function commands(args, var)
     if !isfile(protein_file)
         throw(ErrorException("Protein sequence file not found: $protein_file"))
     end
-    protein_structure = read(protein_file, MMCIF)
+    protein_structure = read(protein_file, MMCIFFormat)
     mutations_vicinity, full_vicinity, non_vicinity = contact_vicinity(args, mutations, protein_structure)
     if args["designation"] == "cluster"
         local_file = joinpath(var["abs_output_dir"], "local$(var["fext"])")

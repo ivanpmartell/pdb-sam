@@ -61,7 +61,7 @@ function commands(args, var)
     record = var["records"][current]
     id, chain = split(current,"_")
     downloaded_path = downloadpdb(id, dir=args["pdb_dir"], format=MMCIF)
-    struc = read(downloaded_path, MMCIF)[chain]
+    struc = read(downloaded_path, MMCIFFormat)[chain]
     current_seq = LongAA(struc, standardselector, gaps=true)
     push!(var["pdb_struct_seqs"], current_seq)
     writemmcif(var["output_file"], struc)

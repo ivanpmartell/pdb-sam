@@ -33,7 +33,7 @@ function preprocess!(args, var)
 end
 
 function commands(args, var)
-    struc = read(var["input_path"], PDB)
+    struc = read(var["input_path"], PDBFormat)
     atoms = collectatoms(struc)
     for atom in atoms
         if any(isnan, coords(atom))
