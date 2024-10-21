@@ -164,7 +164,13 @@ function fix_dssp_formatting_errors(cif_path, dssp_out_path)
 end
 
 function convert_dssp(f_noext, f_path, f_out_path, seq_file, predicted, struc_order, retry)
-    id, ch = split(f_noext, '_')
+    id_chain_split = split(f_noext, "_")
+    id = ch = "";
+    if (length(id_chain_split) < 2)
+        id = first(id_chain_split)
+    else
+        id, ch = id_chain_split
+    end
     tool = "dssp"
     if predicted
         ch = "A"
