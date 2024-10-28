@@ -83,7 +83,7 @@ function commands(args, var)
     good_chains = Set{LongAA}()
     for (chain, struc_chain) in struc_chains
         current_seq = LongAA(struc_chain, standardselector, gaps=true)
-        if !is_clean(current_seq) || length(current_seq) < 50
+        if !is_clean(current_seq) || length(current_seq) < 30
             continue
         end
         if occursinset(current_seq, good_chains)
