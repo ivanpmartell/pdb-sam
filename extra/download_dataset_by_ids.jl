@@ -72,7 +72,7 @@ function commands(args, var)
     else
         id, chain = id_chain_split
     end
-    downloaded_path = downloadpdb(id, dir=args["pdb_dir"], format=MMCIF)
+    downloaded_path = downloadpdb(id, dir=args["pdb_dir"], format=MMCIFFormat)
     struc = read(downloaded_path, MMCIFFormat)
     struc_chains = Dict()
     if (isempty(chain))
