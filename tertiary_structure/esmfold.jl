@@ -35,7 +35,7 @@ function commands(args, var)
         for file_out in files_out
             if startswith(file_out, var["input_noext"])
                 file_out_path = joinpath(root_out, file_out)
-                mv(file_out_path, var["output_file"])
+                mv(file_out_path, var["output_file"], force=true)
                 break
             end
         end
