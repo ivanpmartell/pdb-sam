@@ -99,7 +99,7 @@ end
 
 function normalize_dssp_ouput(df, seq_len, start_resnum, struc_order)
     assignment = repeat('C', seq_len)
-    dssp_dict = Dict("HELX_LH_PP_P" => 'P',
+    dssp_dict = Dict("HELX_LH_PP_P" => 'C', #Not in 8-class format
                     "HELX_RH_AL_P" => 'H',
                     "STRN" => 'E', #Almost never B (isolated beta-bridge), B is assigned later
                     "HELX_RH_3T_P" => 'G',
