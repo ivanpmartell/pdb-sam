@@ -30,12 +30,14 @@ function preprocess!(args, var)
 end
 
 function commands(args, var)
-    run(`$(args["esmfold_exe"]) -i $(var["input_path"]) -o $(var["abs_output_dir"]) --cpu-offload`)
+    run(`$(args["esmfold_exe"]) -i $(var["input_path"]) -o $(var["abs_output_dir"]) --cpu-offload`) #--chunk-size 128 for longer proteins (>1000)
     for (root_out, dirs_out, files_out) in walkdir(var["abs_output_dir"])
         for file_out in files_out
             if startswith(file_out, var["input_noext"])
                 file_out_path = joinpath(root_out, file_out)
-                mv(file_out_path, var["output_file"], force=true)
+                if (file_out_path != var["output_file"])
+                    mv(file_out_path, var["output_file"], force=true)
+                end
                 break
             end
         end
