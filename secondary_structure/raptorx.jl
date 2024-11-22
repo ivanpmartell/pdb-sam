@@ -18,6 +18,9 @@ function parse_commandline()
             required = true
         "--output", "-o"
             help = "Output directory. Ignore to write files in input directory"
+        "--clean", "-c"
+            help = "Remove unnecessary output files from RaptorX Predict Property"
+            action = :store_true
 
     end
     return parse_args(s)
@@ -30,8 +33,18 @@ function preprocess!(args, var)
 end
 
 function commands(args, var)
+    out_dir = joinpath(var["abs_output_dir"], var["input_noext"])
     raptorx = joinpath(args["raptorx_dir"], "Predict_Property.sh")
-    run(`$(raptorx) -i $(var["input_path"]) -o $(var["output_file"])`)
+    run(`$(raptorx) -i $(var["input_path"]) -o $out_dir`)
+    raptorx_out_file = joinpath(out_dir, "$(var["input_noext"]).ss8")
+    if isfile(raptorx_out_file)
+        mv(raptorx_out_file, var["output_file"])
+        if args["clean"]
+            rm(out_dir, recursive=true)
+        end
+    else
+        throw(ErrorException("RaptorX output not found"))
+    end
 end
 
 function main()::Cint
