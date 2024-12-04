@@ -248,6 +248,10 @@ function get_consensus(con_mut_df)
     return first(con_mut_df[con_mut_df.seq_type .== "consensus",:].protein)
 end
 
+function get_mutations(con_mut_df)
+    return con_mut_df[con_mut_df.seq_type .== "mutated",:].protein
+end
+
 function get_consensus_sequence(consensus_file, records)
     consensus_df = read_consensus(consensus_file)
     consensus_protein = get_consensus(consensus_df)
