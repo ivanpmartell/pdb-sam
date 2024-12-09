@@ -57,13 +57,13 @@ function calculate_confusion_matrix(reference, prediction)
             if reference[i] == prediction[i]
                 tp += 1
             else
-                fp += 1
+                fn += 1
             end
         else
             if reference[i] == prediction[i]
                 tn += 1
             else
-                fn += 1
+                fp += 1
             end
         end
     end

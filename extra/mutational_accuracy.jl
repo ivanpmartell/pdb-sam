@@ -45,7 +45,7 @@ function compare_consensus_mutated(consensus_ss8, mutated_ss8)
     return comparison
 end
 
-function calculate_consistency(reference, prediction)
+function calculate_accuracy(reference, prediction)
     result = 0
     for i in eachindex(reference)
         if reference[i] == prediction[i]
@@ -85,8 +85,8 @@ function commands(args, var)
             consensus_pred_ss8 = read_fasta(consensus_pred_files[method])
             mutated_pred_ss8 = read_fasta(mutated_pred_files[method][mutated_protein])
             pred_comparison = compare_consensus_mutated(sequence(consensus_pred_ss8), sequence(mutated_pred_ss8))
-            consistency = calculate_consistency(ref_comparison, pred_comparison)
-            write_file(var["output_file"], "$cluster $consensus_protein $mutated_protein $method $consistency")
+            accuracy = calculate_accuracy(ref_comparison, pred_comparison)
+            write_file(var["output_file"], "$cluster $consensus_protein $mutated_protein $method $accuracy")
         end
     end
 end
