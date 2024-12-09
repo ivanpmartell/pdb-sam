@@ -80,6 +80,26 @@ Once predictions for all the methods have been obtained, run `analysis.sh` scrip
 
 ### Help and Citation
 
+All the julia scripts contain a help manual which can be accessed with the `--help` paramater. For example,
+
+```julia secondary_structure/dssp.jl --help```
+
+will produce the following manual:
+
+```
+usage: dssp.jl [-k] -i INPUT [-e EXTENSION] [-o OUTPUT] [-h]
+
+optional arguments:
+  -k, --skip_error      Skip files that have previously failed
+  -i, --input INPUT     Input directory containing mmcif files
+                        downloaded from PDB
+  -e, --extension EXTENSION
+                        Extension for input files (default: ".cif")
+  -o, --output OUTPUT   Output directory. Ignore to write files in
+                        input directory
+  -h, --help            show this help message and exit
+```
+
 For any questions, please submit a post in the `Issues` tab above.
 
 More information can be found in our research article [here] (TBD).
