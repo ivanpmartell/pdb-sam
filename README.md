@@ -44,8 +44,8 @@ numpy
 ### Tertiary Structure Prediction Methods
 - Alphafold 2 from [here](https://github.com/google-deepmind/alphafold)
 - ESMFold from [here](https://github.com/facebookresearch/esm)
-- ColabFold from [here](https://github.com/sokrypton/ColabFold)
-- RGN2 from [here](https://github.com/aqlaboratory/rgn2)
+- ColabFold from [here](https://github.com/YoshitakaMo/localcolabfold)
+- RGN2 from [here](https://github.com/aqlaboratory/rgn2) and made into a locally runable program through `extra/rgn2_local_files`
 
 The setup of these methods are hardware-dependent and as such must be manually installed by following each of their installation procedures.
 
