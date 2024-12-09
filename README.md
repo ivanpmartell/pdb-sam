@@ -24,13 +24,13 @@ numpy
 ```
 
 ## Required software
-`MAXIT` from [here](https://sw-tools.rcsb.org/apps/MAXIT)
-`DSSP` from [here](https://github.com/PDB-REDO/dssp)
-`ssmetrics` from [here](https://github.com/ivanpmartell/SecondaryStructureMetrics) or ```SOV_refine.pl``` from [here](http://dna.cs.miami.edu/SOV) for metrics calculations
-`Clustal Omega` from [here](http://www.clustal.org/omega)
-`EMBOSS` from [here](http://emboss.open-bio.org/)
-`BLAST+` from [here](https://www.ncbi.nlm.nih.gov/books/NBK131777/)
-`CD-HIT` from [here](https://github.com/weizhongli/cdhit)
+- `MAXIT` from [here](https://sw-tools.rcsb.org/apps/MAXIT)
+- `DSSP` from [here](https://github.com/PDB-REDO/dssp)
+- `ssmetrics` from [here](https://github.com/ivanpmartell/SecondaryStructureMetrics) or ```SOV_refine.pl``` from [here](http://dna.cs.miami.edu/SOV) for metrics calculations
+- `Clustal Omega` from [here](http://www.clustal.org/omega)
+- `EMBOSS` from [here](http://emboss.open-bio.org/)
+- `BLAST+` from [here](https://www.ncbi.nlm.nih.gov/books/NBK131777/)
+- `CD-HIT` from [here](https://github.com/weizhongli/cdhit)
 
 ## Protein Structure Prediction Methods
 
