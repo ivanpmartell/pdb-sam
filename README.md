@@ -102,7 +102,7 @@ optional arguments:
 
 For any questions, please submit a post in the `Issues` tab above.
 
-More information can be found in our research article [here] (TBD).
+More information can be found in our research article [here](https://www.biorxiv.org/content/10.1101/2024.12.23.630208v1.abstract).
 
 If you found our work useful, please cite:
 
