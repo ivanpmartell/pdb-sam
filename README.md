@@ -78,7 +78,7 @@ The script `3dpred.sh` can be used to obtain their predictions.
 The scripts for secondary structure prediction methods can be found under the `analysis` and `extra` folder.
 Once predictions for all the methods have been obtained, run `analysis.sh` script to obtain the mutational results and metrics for each of the prediction methods.
 
-### Help and Citation
+## Help and Citation
 
 All the julia scripts contain a help manual which can be accessed with the `--help` paramater. For example,
 
@@ -107,5 +107,19 @@ More information can be found in our research article [here] (TBD).
 If you found our work useful, please cite:
 
 ```
-TBD
+@misc{perez_missense_2024,
+	title = {Missense mutations: {Backbone} structure positional effects},
+	copyright = {© 2024, Posted by Cold Spring Harbor Laboratory. This pre-print is available under a Creative Commons License (Attribution-NonCommercial 4.0 International), CC BY-NC 4.0, as described at http://creativecommons.org/licenses/by-nc/4.0/},
+	shorttitle = {Missense mutations},
+	url = {https://www.biorxiv.org/content/10.1101/2024.12.23.630208v1},
+	doi = {10.1101/2024.12.23.630208},
+	language = {en},
+	urldate = {2025-02-03},
+	publisher = {bioRxiv},
+	author = {Perez, Ivan and Stege, Ulrike and Jabbari, Hosna},
+	month = dec,
+	year = {2024},
+	note = {Pages: 2024.12.23.630208
+Section: New Results},
+}
 ```
